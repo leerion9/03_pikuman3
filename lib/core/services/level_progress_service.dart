@@ -1,0 +1,30 @@
+// ì§„í–‰ ?ˆë²¨ ?€???œë¹„?? ?¤ìŒ???Œë ˆ?´í•  ?ˆë²¨??SharedPreferences???€?¥í•©?ˆë‹¤.
+
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../constants/game_constants.dart';
+
+/// ?ˆë²¨ ì§„í–‰ ?í™©(?¤ìŒ ?Œë ˆ???ˆë²¨)??ë¡œì»¬???€?¥í•˜ê³?ë¶ˆëŸ¬?¤ëŠ” ?œë¹„??
+class LevelProgressService {
+  LevelProgressService(this._prefs);
+
+  final SharedPreferences _prefs;
+
+  static const String _keyNextPlayableLevel = 'next_playable_level';
+
+  /// ?€?¥ëœ ?¤ìŒ ?Œë ˆ??ê°€???ˆë²¨??ë°˜í™˜?©ë‹ˆ??(?†ìœ¼ë©?1).
+  int getNextPlayableLevel() {
+    return _prefs.getInt(_keyNextPlayableLevel) ?? 1;
+  }
+
+  /// ?¤ìŒ ?Œë ˆ??ê°€???ˆë²¨???€?¥í•©?ˆë‹¤. ë²”ìœ„??1 ~ totalLevels+1ë¡??œí•œ?©ë‹ˆ??
+  Future<void> setNextPlayableLevel(int level) async {
+    final clamped = level.clamp(1, GameConstants.totalLevels + 1);
+    await _prefs.setInt(_keyNextPlayableLevel, clamped);
+  }
+
+  /// ì§„í–‰ ?í™©??ì´ˆê¸°?”í•©?ˆë‹¤ (1?ˆë²¨ë¡?ë¦¬ì…‹).
+  Future<void> reset() async {
+    await _prefs.setInt(_keyNextPlayableLevel, 1);
+  }
+}
