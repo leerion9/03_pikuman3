@@ -1,4 +1,4 @@
-// ë©”ì¸(?? ?”ë©´ UI: ?„ì¬ ?ˆë²¨ ?œì‹œ, ?Œë ˆ??ë²„íŠ¼?¼ë¡œ ê²Œì„ ì§„ì…, ?¤ì • ë²„íŠ¼???œê³µ?˜ëŠ” ?˜ì´ì§€?…ë‹ˆ??
+// ë©”ì¸ í™”ë©´ UI: í˜„ì¬ ë ˆë²¨ í‘œì‹œ, Play/ë‹¨ì–´ì¥ ë²„íŠ¼, í•˜ë‹¨ ë°°ë„ˆ ê´‘ê³ ë¥¼ ì œê³µí•©ë‹ˆë‹¤.
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -7,7 +7,7 @@ import '../../../app/routes/app_pages.dart';
 import '../../../core/widgets/banner_ad_widget.dart';
 import '../controllers/main_controller.dart';
 
-/// ë©”ì¸(?? ?”ë©´: ?ˆë²¨ ?œì‹œ ë°?ê²Œì„ ì§„ì…
+/// ë©”ì¸ í™”ë©´
 class MainPage extends GetView<MainController> {
   const MainPage({super.key});
 
@@ -18,40 +18,26 @@ class MainPage extends GetView<MainController> {
         child: Column(
           children: [
             _buildTopBar(context),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildCharacterImage(context),
-                  const SizedBox(height: 16),
-                  _buildContent(context),
-                ],
-              ),
-            ),
-            _buildBanner(context),
+            Expanded(child: _buildCenter(context)),
+            const SafeArea(top: false, child: BannerAdWidget()),
           ],
         ),
       ),
     );
   }
 
-  /// ?ë‹¨ ?€?´í?Â·?¤ì • ë²„íŠ¼
   Widget _buildTopBar(BuildContext context) {
-    return Container(
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(
-            child: Text(
-              'appTitle'.tr,
-              maxLines: 2,
-              softWrap: true,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.deepOrange.shade700,
-                  ),
-            ),
+          Text(
+            'pikuman3 : word puzzle',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFFFF6B2B),
+                ),
           ),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
@@ -62,107 +48,72 @@ class MainPage extends GetView<MainController> {
     );
   }
 
-  /// ìºë¦­???´ë?ì§€ (?”ë©´ ?’ì´ ??35%)
-  Widget _buildCharacterImage(BuildContext context) {
-    final imageHeight = MediaQuery.of(context).size.height * 0.35;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Center(
-        child: Image.asset(
-          'assets/images/pikuman_back.png',
-          fit: BoxFit.contain,
-          height: imageHeight,
-          // ?´ë?ì§€ ?Œì¼???†ìœ¼ë©?ë¹?ê³µê°„?¼ë¡œ ?€ì²?
-          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-        ),
-      ),
+  Widget _buildCenter(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _buildCharacterImage(context),
+        const SizedBox(height: 24),
+        _buildLevelAndButtons(),
+      ],
     );
   }
 
-  /// ì¤‘ì•™: ?„ì¬ ?ˆë²¨ ?œì‹œ + ?Œë ˆ??ë²„íŠ¼
-  Widget _buildContent(BuildContext context) {
+  Widget _buildCharacterImage(BuildContext context) {
+    final imageHeight = MediaQuery.of(context).size.height * 0.35;
+    return Image.asset(
+      'assets/images/pikuman_back.png',
+      fit: BoxFit.contain,
+      height: imageHeight,
+      errorBuilder: (_, __, ___) => SizedBox(height: imageHeight),
+    );
+  }
+
+  Widget _buildLevelAndButtons() {
     return Obx(() {
       final level = controller.currentLevel.value;
-      const total = 100;
-      final allClear = controller.isAllClear;
-
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // ?ˆë²¨ ?œì‹œ ë°•ìŠ¤
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
             decoration: BoxDecoration(
-              color: Colors.orange.shade100,
+              color: Colors.orange.shade50,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.orange.shade300),
             ),
             child: Text(
-              allClear
-                  ? 'allLevelsClear'.tr
-                  : 'currentLevel'
-                      .trParams({'current': '$level', 'total': '$total'}),
-              style: TextStyle(
+              'currentLevel'.trParams({'level': '$level'}),
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.grey.shade800,
+                color: Color(0xFF333333),
               ),
             ),
           ),
-          const SizedBox(height: 32),
-          // ?Œë ˆ??ë²„íŠ¼
+          const SizedBox(height: 28),
           ElevatedButton.icon(
             onPressed: controller.goToGame,
             icon: const Icon(Icons.play_arrow),
-            label: Text(allClear ? 'playAgain'.tr : 'play'.tr),
+            label: const Text('PLAY'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.deepOrange,
-              foregroundColor: Colors.white,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 36, vertical: 16),
-              textStyle: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
+              textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
-          // ?€?€ [?ŒìŠ¤?¸ìš©] ?ˆë²¨ ë°”ë¡œ ?´ë™ ë²„íŠ¼ ?€?€ ì¶œì‹œ ???œê±° ?ˆì •
           const SizedBox(height: 14),
-          _buildDebugJumpButtons(),
-          // ?€?€ [?ŒìŠ¤?¸ìš©] ???€?€
+          OutlinedButton.icon(
+            onPressed: controller.goToWordbook,
+            icon: const Icon(Icons.menu_book_outlined),
+            label: Text('wordbook'.tr),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+              side: const BorderSide(color: Color(0xFFFF6B2B)),
+              foregroundColor: const Color(0xFFFF6B2B),
+            ),
+          ),
         ],
       );
     });
-  }
-
-  /// [?ŒìŠ¤?¸ìš©] ?¹ì • ?ˆë²¨ë¡?ë°”ë¡œ ?´ë™?˜ëŠ” ë²„íŠ¼ ë¬¶ìŒ. ì¶œì‹œ ???œê±° ?ˆì •.
-  Widget _buildDebugJumpButtons() {
-    const levels = [5, 10, 15, 20, 49, 77, 85, 99, 100];
-    return Wrap(
-      spacing: 8,
-      children: levels
-          .map(
-            (lv) => OutlinedButton(
-              onPressed: () => controller.debugJumpToLevel(lv),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.grey.shade700,
-                side: BorderSide(color: Colors.grey.shade400),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                textStyle: const TextStyle(fontSize: 13),
-              ),
-              child: Text('Lv.$lv'),
-            ),
-          )
-          .toList(),
-    );
-  }
-
-  /// ?˜ë‹¨ ë°°ë„ˆ ê´‘ê³  ?ì—­
-  Widget _buildBanner(BuildContext context) {
-    return const SafeArea(top: false, child: BannerAdWidget());
   }
 }

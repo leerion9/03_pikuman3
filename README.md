@@ -95,18 +95,20 @@ assets/
 
 ## 개발 단계 계획
 
-### Phase 0: 프로젝트 기반 설정
-- [ ] pubspec.yaml 패키지 추가 (`in_app_review` 등)
-- [ ] 전체 폴더 구조 생성 및 각 폴더 가이드 파일 작성
-- [ ] 앱 세로 모드 고정, 기본 테마 설정
-- [ ] assets/data 폴더 pubspec 등록
+### Phase 0: 프로젝트 기반 설정 ✅ 완료
+- [x] pubspec.yaml 패키지 추가 (`in_app_review` 추가, `http` 제거, `assets/data/` 등록)
+- [x] 전체 폴더 구조 생성 및 각 폴더 가이드 파일 작성
+- [x] 앱 세로 모드 고정, 기본 테마 설정 (오렌지 계열)
+- [x] assets/data 폴더에 `word_pool.csv`(10,489개), `level_design.csv` 배치
+- [x] 다국어 제거 (한국어 단독 지원), `app_translations.dart` 재작성
+- [x] 모든 기존 파일 UTF-8 재저장 (인코딩 오류 수정)
+- [x] game / result / wordbook 화면 스텁 파일 생성
+- [x] `flutter analyze` 이슈 0개 확인
 
 ### Phase 1: 데이터 레이어 구축
-- [ ] `word_pool.csv` 파일 수령 후 assets/data 에 배치 (**현재 홀딩 - 파일 전달 대기**)
-- [ ] `level_design.csv` assets/data 에 배치
-- [ ] `WordModel`, `WordLoader` 구현
-- [ ] `LevelDesignLoader` 구현
-- [ ] **테스트**: 시드 기반으로 단어 리스트 콘솔 출력 확인
+- [ ] `WordModel`, `WordLoader` 구현 (`assets/data/word_pool.csv` 파싱)
+- [ ] `LevelDesignModel`, `LevelDesignLoader` 구현 (`assets/data/level_design.csv` 파싱)
+- [ ] **테스트**: 단어 리스트 및 레벨 설계 데이터 콘솔 출력 확인
 
 ### Phase 2: 퍼즐 생성 엔진
 - [ ] Incremental Growth 배치 알고리즘 구현
@@ -162,19 +164,23 @@ assets/
 
 ## 진행 상황
 
-> 마지막 업데이트: 2026-05-16
+> 마지막 업데이트: 2026-05-19
 
 ### 완료된 작업
-- Flutter 프로젝트 생성 및 기본 패키지 설정 (GetX, SharedPreferences, AdMob, audioplayers)
+- Flutter 프로젝트 생성 및 기본 패키지 설정
 - `.cursorrules` 및 `README.md` 작성 (기획 전체 확정 내용 반영)
-- `level_design.csv` 내용 확인 완료
-
-### 현재 홀딩 중
-- **word_pool.csv 파일 전달 대기** (파일 수령 후 Phase 1 진행 가능)
+- **Phase 0 완료**: 프로젝트 기반 설정 전체 완료
+  - `word_pool.csv` (10,489개), `level_design.csv` -> `assets/data/` 배치
+  - `in_app_review` 패키지 추가, `assets/data/` pubspec 등록
+  - 한국어 전용으로 통일, 다국어 제거
+  - game / result / wordbook 스텁 화면 생성
+  - 모든 파일 UTF-8 재저장, `flutter analyze` 이슈 0개
 
 ### 다음 할 일
-- word_pool.csv 파일 수령 후 **Phase 0** 부터 순서대로 진행
-- Phase 0: pubspec 패키지 추가, 폴더 구조 생성
+- **Phase 1**: 데이터 레이어 구축
+  - `WordModel`, `WordLoader` 구현
+  - `LevelDesignModel`, `LevelDesignLoader` 구현
+  - 단어 로드 콘솔 테스트
 
 ---
 

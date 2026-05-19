@@ -1,0 +1,10 @@
+feat: Phase 0 완료 - 프로젝트 기반 설정 전체 적용
+
+- word_pool.csv(10489개), level_design.csv -> assets/data/ 배치
+- pubspec: in_app_review 추가, assets/data/ 등록, http 제거
+- 한국어 전용으로 통일, app_translations 재작성 (다국어 제거)
+- game_constants: 그리드 10x8, 힌트 2회 등 pikuman3 규칙 반영
+- game/result/wordbook 스텁 화면 및 라우트 생성, completion 제거
+- core/data, core/engine, result, wordbook 폴더 및 GUIDE.md 생성
+- 전체 파일 UTF-8 재저장 (Dart 파서 인코딩 오류 해결)
+- flutter analyze 이슈 0개 확인

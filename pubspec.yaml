@@ -48,8 +48,8 @@ dependencies:
   # 외부 링크
   url_launcher: ^6.3.2
 
-  # 서버 통신 (pikuman3 신규)
-  http: ^1.2.0
+  # 인앱 리뷰 (구글 플레이 인앱 리뷰 API)
+  in_app_review: ^2.0.10
 
 dev_dependencies:
   flutter_test:
@@ -72,10 +72,10 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/data/
     - assets/images/
     - assets/splash/
     - assets/fonts/
-    - assets/l10n/
     - assets/sounds/
 
 # dart run flutter_launcher_icons
