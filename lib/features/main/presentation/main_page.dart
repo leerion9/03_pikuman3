@@ -83,7 +83,7 @@ class MainPage extends GetView<MainController> {
               border: Border.all(color: Colors.orange.shade300),
             ),
             child: Text(
-              'currentLevel'.trParams({'level': '$level'}),
+              '현재 레벨 : $level',
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -105,7 +105,7 @@ class MainPage extends GetView<MainController> {
           OutlinedButton.icon(
             onPressed: controller.goToWordbook,
             icon: const Icon(Icons.menu_book_outlined),
-            label: Text('wordbook'.tr),
+            label: const Text('단어장'),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
               side: const BorderSide(color: Color(0xFFFF6B2B)),

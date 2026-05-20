@@ -2,7 +2,6 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 /// 화면 하단 배너 광고 위젯
@@ -65,7 +64,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
         color: Colors.grey.shade200,
         alignment: Alignment.center,
         child: Text(
-          'bannerAdPlaceholder'.tr,
+          '광고 영역',
           style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
         ),
       );

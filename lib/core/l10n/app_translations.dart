@@ -38,5 +38,7 @@ class AppTranslations extends Translations {
     'sectionRating': '평점',
     'ratingTitle': '앱 평가하기',
     'bannerAdPlaceholder': '광고 영역',
+    'completionTitle': '🎉 모든 레벨 클리어!',
+    'completionMessage': '101개 레벨을 모두 완료했습니다!\n앞으로도 계속 도전해 보세요.',
   };
 }

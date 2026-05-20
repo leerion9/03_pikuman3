@@ -1,10 +1,11 @@
 // 스플래시 화면 UI: 앱 최초 실행 시 잠깐 보여주는 화면입니다.
-// 스플래시1(회사 로고) -> 스플래시2(게임 로고 + 로딩) -> 메인 화면 순서로 전환합니다.
+// 스플래시1(회사 로고) -> 스플래시2(게임 로고 + 데이터 로딩) -> 메인 화면 순서로 전환합니다.
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../app/routes/app_pages.dart';
+import '../../../core/services/data_service.dart';
 
 /// 스플래시 화면 (회사 로고 -> 게임 로고 -> 메인)
 class SplashPage extends StatefulWidget {
@@ -24,10 +25,20 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   Future<void> _startSequence() async {
+    // Stage 1: 회사 로고를 1.5초 표시
     await Future.delayed(const Duration(milliseconds: 1500));
     if (!mounted) return;
     setState(() => _stage = 2);
-    await Future.delayed(const Duration(milliseconds: 1500));
+
+    // Stage 2: 단어 풀·레벨 설계 데이터를 실제로 로드
+    try {
+      await Get.find<DataService>().load();
+    } catch (_) {
+      // 로드 실패 시에도 메인 화면으로 진행 (오류는 조용히 처리)
+    }
+
+    // 로딩 화면이 최소 0.5초는 보이도록 보장
+    await Future.delayed(const Duration(milliseconds: 500));
     if (!mounted) return;
     Get.offNamed(AppRoutes.main);
   }

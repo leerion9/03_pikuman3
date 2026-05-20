@@ -105,53 +105,55 @@ assets/
 - [x] game / result / wordbook 화면 스텁 파일 생성
 - [x] `flutter analyze` 이슈 0개 확인
 
-### Phase 1: 데이터 레이어 구축
-- [ ] `WordModel`, `WordLoader` 구현 (`assets/data/word_pool.csv` 파싱)
-- [ ] `LevelDesignModel`, `LevelDesignLoader` 구현 (`assets/data/level_design.csv` 파싱)
-- [ ] **테스트**: 단어 리스트 및 레벨 설계 데이터 콘솔 출력 확인
+### Phase 1: 데이터 레이어 구축 ✅ 완료
+- [x] `WordModel`, `WordLoader` 구현 (`assets/data/word_pool.csv` 파싱, 3~5 음절 필터 포함)
+- [x] `LevelDesignModel`, `LevelDesignLoader` 구현 (`assets/data/level_design.csv` 파싱, 102 레벨 이상 자동 처리)
+- [x] `flutter analyze` 이슈 0개 확인
 
-### Phase 2: 퍼즐 생성 엔진
-- [ ] Incremental Growth 배치 알고리즘 구현
-- [ ] 인접 칸 격리 규칙 (옆구리 접촉 금지, 평행 배치 금지, 헤드/테일 여유) 구현
-- [ ] Backtracking 로직 (500회 초과 시 단어 교체)
-- [ ] 힌트 타일 선정 로직 (교차점 우선, 단어당 최대 2개, 총량은 hint_count)
-- [ ] **테스트**: 퍼즐 구조를 텍스트로 콘솔 출력하여 규칙 준수 확인
+### Phase 2: 퍼즐 생성 엔진 ✅ 완료
+- [x] `lib/core/engine/puzzle_model.dart` — Direction, PlacedWord, HintTile, PuzzleBoard 모델
+- [x] `lib/core/engine/word_placer.dart` — Incremental Growth 배치 + 격리 규칙 + Freezing 방지
+- [x] `lib/core/engine/hint_selector.dart` — 교차점 우선, 단어당 최대 2개, 총량 hint_count
+- [x] `lib/core/engine/puzzle_generator.dart` — 시드 기반 결정론적 퍼즐 생성 진입점
+- [x] `flutter analyze` 이슈 0개 확인
 
-### Phase 3: 화면 뼈대 + 네비게이션
-- [ ] GetX 라우팅 설정
-- [ ] 스플래시 화면 1 (하늘색 + interpage 로고)
-- [ ] 스플래시 화면 2 (빨간 배경 + pikuMAN 캐릭터 + 로딩)
-- [ ] 메인 화면 기본 UI
-- [ ] **테스트**: 화면 전환 흐름 확인
+### Phase 3: 화면 뼈대 + 네비게이션 ✅ 완료
+- [x] GetX 라우팅 설정 (splash → main → game → result → wordbook → settings)
+- [x] 스플래시 화면 1 (하늘색 배경 + interpage 로고 1.5초)
+- [x] 스플래시 화면 2 (빨간 배경 + pikuMAN 캐릭터 + 로딩 인디케이터 + **실제 CSV 데이터 로드**)
+- [x] 메인 화면 기본 UI (캐릭터·레벨 표시·PLAY·단어장·설정 버튼·하단 배너)
+- [x] `DataService` 구현 — word_pool + level_design CSV를 Splash Stage2에서 한 번만 로드·캐시
+- [x] `flutter analyze` 이슈 0개 확인
 
-### Phase 4: 게임 플레이 화면
-- [ ] 크로스워드 그리드 렌더링 (10×8)
-- [ ] 음절 타일 팔레트 표시
-- [ ] 타일 선택 로직 (빈칸 선택 → 음절 입력)
-- [ ] 자동 다음 빈칸 이동 (가로 우선)
-- [ ] 타일 색상 구분 (선택 / 현재 단어 / 정답 / 오답 / 힌트)
-- [ ] 경과 타이머 표시 (앱 백그라운드 시 일시 정지)
-- [ ] **테스트**: 실제 터치 입력 및 자동 이동 동작 확인
+### Phase 4: 게임 플레이 화면 ✅ 완료
+- [x] `lib/features/game/models/game_enums.dart` — CellDisplayState enum (7가지 상태)
+- [x] `lib/features/game/controllers/game_controller.dart` — 퍼즐 로드·셀 선택·음절 입력·자동 이동·타이머·레벨 클리어 감지
+- [x] `lib/features/game/presentation/widgets/crossword_grid_widget.dart` — 10×8 그리드 (상태별 색상)
+- [x] `lib/features/game/presentation/widgets/syllable_palette_widget.dart` — 음절 팔레트 (탭 → 입력)
+- [x] `lib/features/game/presentation/game_page.dart` — 게임 화면 조립 (헤더·그리드·팔레트·힌트·배너)
+- [x] `lib/features/game/bindings/game_binding.dart` — GameController 바인딩
+- [x] `flutter analyze` 이슈 0개 확인
 
-### Phase 5: 게임 로직 완성
-- [ ] 단어 완성 체크 로직
-- [ ] 레벨 클리어 판정
-- [ ] 힌트 기능 구현 (2회 제한)
-- [ ] 세이브/로드 시스템 (시드 재생성 + 입력 상태 저장)
-- [ ] **테스트**: 앱 종료 후 재진입 시 이어서 풀기 확인
+### Phase 5: 게임 로직 완성 ✅ 완료
+- [x] 단어 완성 체크 로직 (모든 빈 칸 정답 일치 시 클리어 감지)
+- [x] 레벨 클리어 → 결과 화면 이동 (`Get.offNamed` + level·elapsed·words 전달)
+- [x] 힌트 기능 구현 (판당 2회 제한, 선택 칸 오픈 or 랜덤 빈 칸 오픈)
+- [x] 세이브/로드 시스템 (`SaveService` — 음절 입력·타이머·힌트 횟수 SharedPreferences 저장)
+- [x] `flutter analyze` 이슈 0개 확인
 
-### Phase 6: 게임 결과 & 부가 화면
-- [ ] 게임 결과 화면 (레벨 클리어 + 등장 단어 전체 + 단어 뜻)
-- [ ] 단어장 화면 (최신 레벨 최상단, 스크롤로 이전 레벨 확인)
-- [ ] 설정 화면 (music / sound / vibration 토글 + 평점 버튼)
-- [ ] **테스트**: 각 화면 데이터 연동 확인
+### Phase 6: 게임 결과 & 부가 화면 ✅ 완료
+- [x] 단어장 화면 (최신 레벨 최상단, 레벨별 단어·뜻 목록, 스크롤로 이전 레벨 확인)
+- [x] 설정 화면 완성 (효과음/BGM/진동 토글 + 인앱 리뷰 + 스토어 fallback)
+- [x] `flutter analyze` 이슈 0개 확인
 
-### Phase 7: 사운드 & 광고
-- [ ] BGM (게임 중 재생, 백그라운드 시 정지)
-- [ ] 효과음 (빈칸 선택 / 단어 완성 / 오답 / 레벨 클리어)
-- [ ] AdMob 배너 광고 (하단 고정)
-- [ ] AdMob 전면 광고 (10 레벨마다)
-- [ ] **테스트**: 광고 테스트 ID로 동작 확인
+### Phase 7: 사운드 & 광고 ✅ 완료
+- [x] BGM (`bgm.mp3`) — 앱 포그라운드 시 재생, 백그라운드 시 자동 정지
+- [x] 효과음 연결 — 빈칸 선택(`cell_select.wav`) / 단어 완성(`equation_complete.wav`) / 오답(`tile_incorrect.wav`) / 레벨 클리어(`level_clear.mp3`)
+- [x] 오답 입력 시 햅틱 피드백 (진동 설정 ON 시)
+- [x] AdMob 배너 광고 — 메인·게임·결과 화면 하단 고정
+- [x] AdMob 전면 광고 — 10레벨 클리어마다 자동 표시
+- [x] `.tr` 전면 제거 (한국어 직접 표기로 전환)
+- [x] `flutter analyze` 이슈 0개 확인
 
 ### Phase 8: 완성도 & 출시 준비
 - [ ] In-App Review API 연동 + 스토어 이동 fallback
@@ -164,7 +166,7 @@ assets/
 
 ## 진행 상황
 
-> 마지막 업데이트: 2026-05-19
+> 마지막 업데이트: 2026-05-20 (Phase 7 완료)
 
 ### 완료된 작업
 - Flutter 프로젝트 생성 및 기본 패키지 설정
@@ -175,20 +177,76 @@ assets/
   - 한국어 전용으로 통일, 다국어 제거
   - game / result / wordbook 스텁 화면 생성
   - 모든 파일 UTF-8 재저장, `flutter analyze` 이슈 0개
+- **Phase 1 완료**: 데이터 레이어 구축
+  - `lib/core/data/word_model.dart` — 단어 모델 (word, meaning, syllableCount 자동 계산)
+  - `lib/core/data/word_loader.dart` — CSV 파싱 + 3~5 음절 필터링
+  - `lib/core/data/level_design_model.dart` — 레벨 설계 모델 (level, wordCount, hintCount)
+  - `lib/core/data/level_design_loader.dart` — CSV 파싱 + 102 레벨 이상 자동 처리
+  - `flutter analyze` 이슈 0개
+- **Phase 2 완료**: 퍼즐 생성 엔진 구축
+  - `lib/core/engine/puzzle_model.dart` — Direction enum, PlacedWord, HintTile, PuzzleBoard 모델
+  - `lib/core/engine/word_placer.dart` — Incremental Growth 배치 알고리즘 (격리 규칙, Freezing 방지)
+  - `lib/core/engine/hint_selector.dart` — 교차점 우선 힌트 타일 선정 (단어당 최대 2개)
+  - `lib/core/engine/puzzle_generator.dart` — 레벨 번호 시드 기반 결정론적 퍼즐 생성
+  - `flutter analyze` 이슈 0개
+- **Phase 3 완료**: 화면 뼈대 + 네비게이션
+  - 스플래시 1 (하늘색 + interpage 로고) / 스플래시 2 (빨간 배경 + 로딩)
+  - 메인 화면 UI (레벨 표시·PLAY·단어장·설정·배너 광고)
+  - GetX 라우팅 전체 설정 (6개 화면)
+  - `lib/core/services/data_service.dart` — Splash Stage2에서 CSV 한 번만 로드·캐시
+  - `flutter analyze` 이슈 0개
+- **Phase 4 완료**: 게임 플레이 화면
+  - `CellDisplayState` enum 7가지 상태 (inactive / empty / activeWord / selected / hint / correct / incorrect)
+  - `GameController` — 퍼즐 로드, 셀 선택(교차점 방향 전환), 음절 입력, 자동 다음 빈칸 이동, 경과 타이머, 레벨 클리어 감지
+  - `CrosswordGridWidget` — 10×8 그리드, 상태별 색상, GestureDetector 탭
+  - `SyllablePaletteWidget` — 중복 제거 음절 타일, 탭하면 입력
+  - `GamePage` — 헤더(Level N + 타이머) + 그리드 + 팔레트 + 힌트 버튼 + 배너
+  - `flutter analyze` 이슈 0개
+- **Phase 5 완료**: 게임 로직 완성
+  - `lib/core/services/save_service.dart` — 음절 입력·타이머·힌트 횟수 SharedPreferences 저장/로드/삭제
+  - `GameController` 확장 — 힌트 기능(선택 칸 오픈 or 랜덤 빈 칸 오픈, 판당 2회), 세이브/로드, 클리어 시 저장 삭제 + 레벨 진행 업데이트 + 결과 화면 이동
+  - `GamePage` — 힌트 버튼 활성화 (남은 횟수 표시, 0이면 비활성)
+  - `ResultPage` — 실제 결과 화면 구현 (클리어 레벨·시간·단어 목록·뜻, 홈/다음 레벨 버튼)
+  - `flutter analyze` 이슈 0개
+- **Phase 6 완료**: 게임 결과 & 부가 화면
+  - (위에 서술됨)
+- **Phase 7 완료**: 사운드 & 광고
+  - `AudioService` — BGM·효과음 4종 GameController에 연결 (빈칸 선택·단어 완성·오답·레벨 클리어)
+  - 오답 시 햅틱 피드백 (진동 설정 연동)
+  - `AdService` — `showInterstitialEvery10Levels()` 레벨 클리어 시 자동 호출
+  - `BannerAdWidget`, `MainPage`, `CompletionPage` 등 `.tr` 전면 제거
+  - `flutter analyze` 이슈 0개
 
 ### 다음 할 일
-- **Phase 1**: 데이터 레이어 구축
-  - `WordModel`, `WordLoader` 구현
-  - `LevelDesignModel`, `LevelDesignLoader` 구현
-  - 단어 로드 콘솔 테스트
+- **Phase 8**: 완성도 & 출시 준비
+  - 앱 아이콘 이미지 `assets/images/app_icon.png` 준비 후 `dart run flutter_launcher_icons` 실행
+  - 스플래시·캐릭터 이미지 `assets/images/` 에 배치 (`pikuman_back.png` 등)
+  - BGM 파일 교체 (`assets/sounds/bgm.mp3` 새 파일로 덮어쓰기)
+  - AdMob 콘솔에서 pikuman3 앱 등록 → App ID / 배너 ID / 전면 ID 발급 후 교체
+  - In-App Review API 연동 확인 (설정 화면 이미 구현됨 ✅)
+  - 릴리즈 빌드 및 서명 (`flutter build appbundle --release`)
+  - 플레이스토어 업로드
 
 ---
 
-## 광고 ID 관리
+## 출시 전 필수 교체 항목
 
-> **출시 전 반드시 테스트 ID를 실제 AdMob ID로 교체할 것**
+> **아래 항목들을 반드시 출시 전에 교체/추가해야 합니다**
 
-| 위치 | 파일 |
-|------|------|
-| 배너 광고 | `lib/core/widgets/banner_ad_widget.dart` |
-| 전면 광고 | `lib/core/services/ad_service.dart` |
+| 항목 | 현재 상태 | 교체 방법 |
+|------|----------|----------|
+| AdMob App ID | pikuman2 App ID 임시 사용 중 | AdMob 콘솔 → pikuman3 앱 등록 → `AndroidManifest.xml` 의 `APPLICATION_ID` 교체 |
+| AdMob 배너 광고 ID | pikuman2 ID 사용 중 | `lib/core/widgets/banner_ad_widget.dart` 의 `_adUnitId` 교체 |
+| AdMob 전면 광고 ID | pikuman2 ID 사용 중 | `lib/core/services/ad_service.dart` 의 `interstitialAdUnitId` 교체 |
+| 캐릭터 이미지 | 없음 (빈 공간으로 표시됨) | `assets/images/pikuman_back.png` 추가 |
+| 앱 아이콘 | 없음 | `assets/images/app_icon.png` 추가 후 `dart run flutter_launcher_icons` |
+| BGM 파일 | 구버전 `bgm.mp3` 사용 중 | 새 파일로 `assets/sounds/bgm.mp3` 덮어쓰기 |
+| 플레이스토어 URL | pikuman3 패키지명으로 작성됨 | 앱 출시 후 자동으로 유효해짐 (별도 수정 불필요) |
+
+## 광고 ID 위치
+
+| 광고 종류 | 파일 | 변수명 |
+|----------|------|-------|
+| AdMob App ID | `android/app/src/main/AndroidManifest.xml` | `APPLICATION_ID` meta-data |
+| 배너 광고 ID | `lib/core/widgets/banner_ad_widget.dart` | `_adUnitId` |
+| 전면 광고 ID | `lib/core/services/ad_service.dart` | `interstitialAdUnitId` |

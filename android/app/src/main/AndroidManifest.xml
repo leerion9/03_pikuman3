@@ -3,6 +3,10 @@
         android:label="pikuman3 : word puzzle"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!-- AdMob App ID ← 출시 전 AdMob 콘솔에서 pikuman3 앱 등록 후 실제 ID로 교체 필요 -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-2850426593033777~3721212609"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"

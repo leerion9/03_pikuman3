@@ -8,10 +8,11 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../controllers/settings_controller.dart';
 
+/// 구글 플레이 스토어 앱 페이지 URL (출시 후 실제 앱 ID로 교체)
 const _playStoreUrl =
     'https://play.google.com/store/apps/details?id=com.interpage.pikuman3';
 
-/// 설정 화면
+/// 설정 화면: 효과음·BGM·진동 토글 + 앱 평가 버튼
 class SettingsPage extends GetView<SettingsController> {
   const SettingsPage({super.key});
 
@@ -19,36 +20,45 @@ class SettingsPage extends GetView<SettingsController> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('settingsTitle'.tr),
+        backgroundColor: const Color(0xFFFF6B2B),
+        foregroundColor: Colors.white,
+        title: const Text(
+          '설정',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: controller.back,
         ),
+        elevation: 0,
       ),
       body: SafeArea(
         child: ListView(
           children: [
-            _sectionTitle('sectionSound'.tr),
+            _sectionTitle('사운드'),
             _switchTile(
-              title: 'sfxTitle'.tr,
+              title: '효과음',
+              subtitle: '버튼 및 입력 효과음',
               value: controller.sfxEnabled,
               onChanged: controller.setSfx,
             ),
             _switchTile(
-              title: 'bgmTitle'.tr,
+              title: '배경 음악',
+              subtitle: '게임 중 재생되는 BGM',
               value: controller.musicEnabled,
               onChanged: controller.setMusic,
             ),
-            _sectionTitle('sectionVibration'.tr),
+            _sectionTitle('진동'),
             _switchTile(
-              title: 'vibrationTitle'.tr,
+              title: '진동 (햅틱)',
+              subtitle: '터치 시 진동 피드백',
               value: controller.vibrationEnabled,
               onChanged: (v) {
                 controller.setVibration(v);
                 if (v) HapticFeedback.lightImpact();
               },
             ),
-            _sectionTitle('sectionRating'.tr),
+            _sectionTitle('평점'),
             _buildRatingTile(),
           ],
         ),
@@ -56,6 +66,7 @@ class SettingsPage extends GetView<SettingsController> {
     );
   }
 
+  /// 섹션 구분 제목
   Widget _sectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 6),
@@ -71,22 +82,28 @@ class SettingsPage extends GetView<SettingsController> {
     );
   }
 
+  /// on/off 토글 리스트 타일
   Widget _switchTile({
     required String title,
+    required String subtitle,
     required RxBool value,
     required void Function(bool) onChanged,
   }) {
-    return Obx(() => SwitchListTile(
-          title: Text(title),
-          value: value.value,
-          onChanged: onChanged,
-          activeTrackColor: const Color(0xFFFF6B2B),
-        ));
+    return Obx(
+      () => SwitchListTile(
+        title: Text(title),
+        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+        value: value.value,
+        onChanged: onChanged,
+        activeThumbColor: const Color(0xFFFF6B2B),
+      ),
+    );
   }
 
+  /// 앱 평가 버튼: 인앱 리뷰 API 우선, 실패 시 스토어로 이동
   Widget _buildRatingTile() {
     return ListTile(
-      title: Text('ratingTitle'.tr),
+      title: const Text('앱 평가하기'),
       subtitle: Row(
         children: List.generate(
           5,
@@ -98,6 +115,7 @@ class SettingsPage extends GetView<SettingsController> {
     );
   }
 
+  /// 구글 인앱 리뷰 API를 시도하고, 불가능하면 스토어 페이지로 이동합니다.
   Future<void> _requestReview() async {
     final inAppReview = InAppReview.instance;
     try {
@@ -106,9 +124,11 @@ class SettingsPage extends GetView<SettingsController> {
         return;
       }
     } catch (_) {}
+    // 인앱 리뷰 불가 시 스토어로 직접 이동
     await _openPlayStore();
   }
 
+  /// 구글 플레이 스토어 앱 페이지를 외부 브라우저로 엽니다.
   Future<void> _openPlayStore() async {
     final uri = Uri.parse(_playStoreUrl);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {

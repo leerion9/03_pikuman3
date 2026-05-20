@@ -1,11 +1,11 @@
-// ?ˆë²¨ ?„ë£Œ ?”ë©´: 100?ˆë²¨??ëª¨ë‘ ?´ë¦¬?´í–ˆ?????œì‹œ?˜ëŠ” ì¶•í•˜ ?”ë©´?…ë‹ˆ??
+// 100?? ?? ??? ??: ?? ??? ???? ? ???? ?? ?????.
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../app/routes/app_pages.dart';
 
-/// 100?ˆë²¨ ?„ì²´ ?„ë£Œ ì¶•í•˜ ?”ë©´.
+/// 101?? ???? ?? ??? ????? ? ???? ?? ??.
 class CompletionPage extends StatelessWidget {
   const CompletionPage({super.key});
 
@@ -22,62 +22,61 @@ class CompletionPage extends StatelessWidget {
               color: Colors.blue.shade700,
               borderRadius: BorderRadius.circular(20),
               boxShadow: const [
-                BoxShadow(color: Colors.black26, blurRadius: 16)
+                BoxShadow(color: Colors.black26, blurRadius: 16),
               ],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('?†', style: TextStyle(fontSize: 64)),
+                const Text('??', style: TextStyle(fontSize: 64)),
                 const SizedBox(height: 16),
-                Text(
-                  'completionTitle'.tr,
+                const Text(
+                  '?? ?? ?? ???!',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  'completionMessage'.tr,
+                const Text(
+                  '101? ??? ?? ??????!\n???? ?? ??? ???.',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 16,
-                  ),
+                  style: TextStyle(color: Colors.white70, fontSize: 16),
                 ),
                 const SizedBox(height: 36),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // ?ˆìœ¼ë¡??Œì•„ê°€ê¸?
                     OutlinedButton(
                       onPressed: () => Get.offAllNamed(AppRoutes.main),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,
                         side: const BorderSide(color: Colors.white),
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 24, vertical: 14),
+                          horizontal: 24,
+                          vertical: 14,
+                        ),
                       ),
-                      child: Text('home'.tr),
+                      child: const Text('???'),
                     ),
                     const SizedBox(width: 16),
-                    // ì²˜ìŒë¶€???¤ì‹œ ?˜ê¸°
                     ElevatedButton(
                       onPressed: () => Get.offAllNamed(AppRoutes.main),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: Colors.blue.shade800,
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 24, vertical: 14),
+                          horizontal: 24,
+                          vertical: 14,
+                        ),
                         textStyle: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
                         ),
                       ),
-                      child: Text('playAgain'.tr),
+                      child: const Text('?? ??'),
                     ),
                   ],
                 ),
