@@ -166,7 +166,7 @@ assets/
 
 ## 진행 상황
 
-> 마지막 업데이트: 2026-05-20 (Phase 7 완료)
+> 마지막 업데이트: 2026-05-21 (Phase 7 완료 + 디바이스 실행 버그 수정)
 
 ### 완료된 작업
 - Flutter 프로젝트 생성 및 기본 패키지 설정
@@ -216,8 +216,13 @@ assets/
   - `AdService` — `showInterstitialEvery10Levels()` 레벨 클리어 시 자동 호출
   - `BannerAdWidget`, `MainPage`, `CompletionPage` 등 `.tr` 전면 제거
   - `flutter analyze` 이슈 0개
+- **디바이스 실행 버그 수정** (2026-05-21)
+  - `android/app/src/main/AndroidManifest.xml` — `INTERNET` 권한 누락 추가 (AdMob 초기화 오류 방지)
+  - `android/app/src/main/kotlin/com/interpage/pikuman3/MainActivity.kt` — 패키지명 불일치 수정 (`pikuman3_word_puzzle` → `pikuman3`): ClassNotFoundException 크래시 원인
+  - 실기기(SM A546S, Android 16) 정상 실행 확인
 
 ### 다음 할 일
+- **게임 플레이 버그 수정** (실기기 테스트 중 발견된 오류들 수정 필요)
 - **Phase 8**: 완성도 & 출시 준비
   - 앱 아이콘 이미지 `assets/images/app_icon.png` 준비 후 `dart run flutter_launcher_icons` 실행
   - 스플래시·캐릭터 이미지 `assets/images/` 에 배치 (`pikuman_back.png` 등)
