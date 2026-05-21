@@ -10,22 +10,32 @@ import '../../models/game_enums.dart';
 /// 10열 × 8행 크로스워드 그리드 위젯.
 ///
 /// - 화면 너비에 맞춰 셀 크기를 자동 계산합니다.
+/// - 모든 셀(활성/비활성)을 동일한 크기(SizedBox)로 감싸 정렬 불일치를 방지합니다.
 /// - Obx 로 감싸서 입력·선택 상태 변화 시 자동 리렌더합니다.
-/// - 검은 칸(inactive)은 진한 배경으로, 활성 칸은 상태별 색상으로 표시합니다.
 class CrosswordGridWidget extends StatelessWidget {
   final GameController controller;
 
-  const CrosswordGridWidget({super.key, required this.controller});
+  /// 애니메이션에서 그리드 컨테이너 위치를 구하기 위한 전역 키
+  final GlobalKey? containerKey;
+
+  const CrosswordGridWidget({
+    super.key,
+    required this.controller,
+    this.containerKey,
+  });
 
   @override
   Widget build(BuildContext context) {
-    // 화면 너비에서 좌우 패딩을 제외한 만큼을 10칸으로 나눠 셀 크기를 계산합니다.
-    final cellSize =
-        (MediaQuery.of(context).size.width - 8) / PuzzleBoard.boardCols;
+    // 그리드 컨테이너 내부 패딩(양쪽 2px)을 제외한 너비를 10칸으로 나눠 셀 크기 계산
+    const double gridPadding = 2.0;
+    final double cellSize =
+        (MediaQuery.of(context).size.width - gridPadding * 2) /
+        PuzzleBoard.boardCols;
 
     return Container(
+      key: containerKey,
       color: const Color(0xFF37474F), // 그리드 배경 (진한 청회색)
-      padding: const EdgeInsets.all(2),
+      padding: const EdgeInsets.all(gridPadding),
       child: Obx(
         () => Column(
           mainAxisSize: MainAxisSize.min,
@@ -43,33 +53,42 @@ class CrosswordGridWidget extends StatelessWidget {
     );
   }
 
+  /// 셀 하나를 그립니다.
+  ///
+  /// 모든 셀(활성/비활성)을 동일한 SizedBox로 감싸 Row 정렬이 틀어지지 않게 합니다.
+  /// 활성 셀 내부에는 Padding을 사용해 셀 간 시각적 간격을 만듭니다(margin 대신).
   Widget _buildCell(int row, int col, double size) {
     final state = controller.cellState(row, col);
     final letter = controller.displayLetter(row, col);
 
-    // 검은 칸: 배경만 표시, 터치 영역 없음
+    // 검은 칸(비활성): 배경색 없이 동일 크기의 빈 공간
     if (state == CellDisplayState.inactive) {
       return SizedBox(width: size, height: size);
     }
 
-    return GestureDetector(
-      onTap: () => controller.onCellTap(row, col),
-      child: Container(
-        width: size,
-        height: size,
-        margin: const EdgeInsets.all(0.8),
-        decoration: BoxDecoration(
-          color: _bgColor(state),
-          borderRadius: BorderRadius.circular(2),
-        ),
-        child: Center(
-          child: Text(
-            letter ?? '',
-            style: TextStyle(
-              fontSize: size * 0.48,
-              fontWeight: FontWeight.bold,
-              color: _textColor(state),
-              height: 1.0,
+    // 활성 칸: Padding으로 셀 간 간격 표현 (margin 사용 시 Row 크기가 틀어짐)
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Padding(
+        padding: const EdgeInsets.all(1.0),
+        child: GestureDetector(
+          onTap: () => controller.onCellTap(row, col),
+          child: Container(
+            decoration: BoxDecoration(
+              color: _bgColor(state),
+              borderRadius: BorderRadius.circular(2),
+            ),
+            child: Center(
+              child: Text(
+                letter ?? '',
+                style: TextStyle(
+                  fontSize: size * 0.48,
+                  fontWeight: FontWeight.bold,
+                  color: _textColor(state),
+                  height: 1.0,
+                ),
+              ),
             ),
           ),
         ),

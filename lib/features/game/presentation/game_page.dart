@@ -1,8 +1,11 @@
 // 게임 플레이 화면 UI: 헤더, 크로스워드 그리드, 음절 팔레트, 힌트 버튼을 조립합니다.
 
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/engine/puzzle_model.dart';
 import '../../../core/widgets/banner_ad_widget.dart';
 import '../controllers/game_controller.dart';
 import 'widgets/crossword_grid_widget.dart';
@@ -10,15 +13,34 @@ import 'widgets/syllable_palette_widget.dart';
 
 /// 게임 플레이 화면.
 ///
+/// StatefulWidget으로 구현해 팔레트 타일 → 크로스워드 칸으로 날아가는 애니메이션 상태를 관리합니다.
+///
 /// 레이아웃 (위→아래):
 ///  1. 헤더 — "Level N" + 경과 타이머
 ///  2. 크로스워드 그리드 (10×8)
-///  3. 음절 팔레트
-///  4. 힌트 버튼 (Phase 5 에서 기능 구현)
+///  3. 음절 팔레트 (반응형: 정답 입력 시 해당 음절 타일 사라짐)
+///  4. 힌트 버튼
 ///  5. 하단 배너 광고
-class GamePage extends GetView<GameController> {
+class GamePage extends StatefulWidget {
   const GamePage({super.key});
 
+  @override
+  State<GamePage> createState() => _GamePageState();
+}
+
+class _GamePageState extends State<GamePage> {
+  /// GetX 컨트롤러 (Get.find 직접 참조)
+  GameController get controller => Get.find<GameController>();
+
+  /// 크로스워드 그리드 컨테이너의 전역 키.
+  /// 날아가는 애니메이션에서 목적지 셀 위치를 계산할 때 사용합니다.
+  final GlobalKey _gridKey = GlobalKey();
+
+  /// 팔레트 타일별 전역 키 목록 (인덱스 대응).
+  /// 탭한 타일의 화면 위치를 구할 때 사용합니다.
+  final List<GlobalKey> _paletteKeys = [];
+
+  // ─── 빌드 ────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -28,9 +50,10 @@ class GamePage extends GetView<GameController> {
         child: Column(
           children: [
             _buildHeader(),
-            // 그리드: 화면 너비를 기준으로 고정 높이
-            CrosswordGridWidget(controller: controller),
-            // 남은 공간을 팔레트 + 힌트 버튼이 채움
+            CrosswordGridWidget(
+              controller: controller,
+              containerKey: _gridKey,
+            ),
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -41,7 +64,6 @@ class GamePage extends GetView<GameController> {
                 ],
               ),
             ),
-            // 하단 배너 광고
             const SafeArea(top: false, child: BannerAdWidget()),
           ],
         ),
@@ -49,7 +71,7 @@ class GamePage extends GetView<GameController> {
     );
   }
 
-  /// 레벨 번호와 경과 타이머를 표시하는 헤더
+  // ─── 헤더 ─────────────────────────────────────────────────
   Widget _buildHeader() {
     return Container(
       color: const Color(0xFFFF6B2B),
@@ -89,26 +111,99 @@ class GamePage extends GetView<GameController> {
     );
   }
 
-  /// 음절 팔레트 영역
+  // ─── 팔레트 ───────────────────────────────────────────────
+  /// 팔레트 영역. Obx로 감싸 음절 목록이 바뀔 때 자동으로 리빌드됩니다.
   Widget _buildPalette() {
-    return Container(
-      width: double.infinity,
-      color: const Color(0xFFEEEEEE),
-      child: SyllablePaletteWidget(
-        syllables: controller.palette,
-        onTap: controller.onSyllableTap,
-      ),
-    );
+    return Obx(() {
+      final syllables = controller.palette.toList();
+      // 팔레트 타일 수만큼 GlobalKey를 확보 (부족하면 추가 생성)
+      while (_paletteKeys.length < syllables.length) {
+        _paletteKeys.add(GlobalKey());
+      }
+      return Container(
+        width: double.infinity,
+        color: const Color(0xFFEEEEEE),
+        child: SyllablePaletteWidget(
+          syllables: syllables,
+          tileKeys: _paletteKeys,
+          onTap: _onPaletteTileTap,
+        ),
+      );
+    });
   }
 
-  /// 힌트 버튼: 남은 횟수를 표시하며, 0이 되면 비활성화됩니다.
+  /// 팔레트 타일 탭 처리.
+  ///
+  /// 1. 탭한 타일의 화면 위치를 GlobalKey로 구합니다.
+  /// 2. 목적지 셀의 화면 위치를 그리드 GlobalKey로 계산합니다.
+  /// 3. Overlay에 날아가는 타일 애니메이션을 삽입합니다.
+  /// 4. 즉시 게임 상태를 업데이트합니다 (팔레트 타일 사라짐 + 셀 입력).
+  void _onPaletteTileTap(int index, String syllable) {
+    final selectedPos = controller.selectedPos.value;
+    if (selectedPos == null) return;
+
+    // 팔레트 타일 위치 구하기
+    final paletteKey = index < _paletteKeys.length ? _paletteKeys[index] : null;
+    final paletteBox =
+        paletteKey?.currentContext?.findRenderObject() as RenderBox?;
+
+    // 그리드 컨테이너 위치 구하기
+    final gridBox = _gridKey.currentContext?.findRenderObject() as RenderBox?;
+
+    if (paletteBox != null && gridBox != null) {
+      final startPos = paletteBox.localToGlobal(Offset.zero);
+      final gridPos = gridBox.localToGlobal(Offset.zero);
+      final cellSize = gridBox.size.width / PuzzleBoard.boardCols;
+
+      final endPos = Offset(
+        gridPos.dx + selectedPos.$2 * cellSize,
+        gridPos.dy + selectedPos.$1 * cellSize,
+      );
+
+      // 날아가는 타일 애니메이션 (순수 시각 효과)
+      _launchFlyingTile(
+        syllable: syllable,
+        startPos: startPos,
+        endPos: endPos,
+        tileSize: min(paletteBox.size.width, cellSize),
+      );
+    }
+
+    // 게임 상태는 즉시 업데이트 (애니메이션과 병행)
+    controller.onSyllableTap(syllable);
+  }
+
+  /// Overlay에 음절 타일이 팔레트 위치에서 그리드 칸으로 날아가는 애니메이션을 삽입합니다.
+  void _launchFlyingTile({
+    required String syllable,
+    required Offset startPos,
+    required Offset endPos,
+    required double tileSize,
+  }) {
+    OverlayEntry? entry;
+    entry = OverlayEntry(
+      builder: (_) => Positioned.fill(
+        child: IgnorePointer(
+          child: _FlyingTileWidget(
+            syllable: syllable,
+            startPos: startPos,
+            endPos: endPos,
+            tileSize: tileSize,
+            onComplete: () => entry?.remove(),
+          ),
+        ),
+      ),
+    );
+    Overlay.of(context).insert(entry);
+  }
+
+  // ─── 힌트 버튼 ────────────────────────────────────────────
   Widget _buildHintButton() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Obx(() {
         final remaining = controller.remainingHints;
-        final active =
-            remaining > 0 && !controller.isLevelComplete.value;
+        final active = remaining > 0 && !controller.isLevelComplete.value;
         return OutlinedButton.icon(
           onPressed: active ? controller.onHintTap : null,
           icon: Icon(
@@ -129,6 +224,116 @@ class GamePage extends GetView<GameController> {
           ),
         );
       }),
+    );
+  }
+}
+
+// ─── 날아가는 타일 애니메이션 위젯 ──────────────────────────────────
+
+/// 팔레트 타일이 크로스워드 목적지 칸으로 날아가는 애니메이션 위젯.
+///
+/// Overlay의 Positioned.fill 안에서 렌더링되므로 화면 전체를 덮지만
+/// IgnorePointer로 감싸져 터치를 차단하지 않습니다.
+class _FlyingTileWidget extends StatefulWidget {
+  final String syllable;
+  final Offset startPos; // 화면 좌표계 기준 시작 위치
+  final Offset endPos; // 화면 좌표계 기준 도착 위치
+  final double tileSize; // 타일 크기
+  final VoidCallback onComplete; // 애니메이션 완료 시 콜백
+
+  const _FlyingTileWidget({
+    required this.syllable,
+    required this.startPos,
+    required this.endPos,
+    required this.tileSize,
+    required this.onComplete,
+  });
+
+  @override
+  State<_FlyingTileWidget> createState() => _FlyingTileWidgetState();
+}
+
+class _FlyingTileWidgetState extends State<_FlyingTileWidget>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<Offset> _posAnim; // 위치 이동 애니메이션
+  late final Animation<double> _scaleAnim; // 크기 축소 애니메이션
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      duration: const Duration(milliseconds: 320),
+      vsync: this,
+    );
+
+    _posAnim = Tween<Offset>(
+      begin: widget.startPos,
+      end: widget.endPos,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+
+    // 팔레트 타일 크기(48px) → 목적지 셀 크기로 자연스럽게 변환
+    _scaleAnim = Tween<double>(
+      begin: 1.0,
+      end: widget.tileSize / 48.0,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeIn));
+
+    _ctrl.forward().whenComplete(widget.onComplete);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (_, __) {
+        return Stack(
+          children: [
+            Positioned(
+              left: _posAnim.value.dx,
+              top: _posAnim.value.dy,
+              width: 48,
+              height: 48,
+              child: Transform.scale(
+                scale: _scaleAnim.value,
+                alignment: Alignment.topLeft,
+                child: Material(
+                  color: Colors.transparent,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF6B2B),
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black38,
+                          blurRadius: 6,
+                          offset: Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Text(
+                        widget.syllable,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          height: 1.0,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

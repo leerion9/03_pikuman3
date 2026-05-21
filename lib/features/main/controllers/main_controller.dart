@@ -40,4 +40,11 @@ class MainController extends GetxController {
   void goToWordbook() {
     Get.toNamed(AppRoutes.wordbook);
   }
+
+  /// [테스트용] 지정한 레벨 번호로 바로 이동합니다.
+  /// 출시 전에 이 기능과 관련 UI를 제거해야 합니다.
+  void goToLevel(int level) {
+    if (level < 1) return;
+    Get.toNamed(AppRoutes.game, arguments: level);
+  }
 }

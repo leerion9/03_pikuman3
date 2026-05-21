@@ -43,7 +43,6 @@ class GameController extends GetxController with WidgetsBindingObserver {
   // ─── 퍼즐 상태 ───────────────────────────────────────────
   late PuzzleBoard _puzzle;
   late int _level;
-  late List<String> _palette; // 중복 제거된 음절 목록 (셔플됨)
   late Set<(int, int)> _hintPositions; // 퍼즐 힌트 타일 좌표 집합
 
   // ─── 반응형 상태 ─────────────────────────────────────────
@@ -65,12 +64,18 @@ class GameController extends GetxController with WidgetsBindingObserver {
   /// 유저가 이번 판에 사용한 힌트 횟수
   final hintsUsed = 0.obs;
 
+  /// 음절 팔레트 (반응형).
+  ///
+  /// 아직 정답이 채워지지 않은 빈 칸의 음절만 포함합니다.
+  /// 힌트 타일(미리 오픈된 칸)은 처음부터 포함하지 않습니다.
+  /// 정답 음절이 입력되거나 힌트로 오픈되면 해당 음절이 제거됩니다.
+  final palette = <String>[].obs;
+
   Timer? _timer;
 
   // ─── 공개 게터 ───────────────────────────────────────────
   PuzzleBoard get puzzle => _puzzle;
   int get level => _level;
-  List<String> get palette => _palette;
 
   /// 이번 판에 남은 힌트 사용 횟수
   int get remainingHints => _maxHints - hintsUsed.value;
@@ -96,7 +101,8 @@ class GameController extends GetxController with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _level = Get.arguments as int? ?? 1;
     _initPuzzle();
-    _loadSavedState(); // 저장된 진행 상태 복원
+    _loadSavedState();
+    _syncPaletteAfterLoad(); // 저장된 상태 반영: 이미 정답이 입력된 칸의 음절 제거
     _startTimer();
     ever(isLevelComplete, _handleLevelComplete);
   }
@@ -135,15 +141,35 @@ class GameController extends GetxController with WidgetsBindingObserver {
     _buildPalette();
   }
 
-  /// 배치된 단어들에서 중복 없는 음절 목록을 만들어 셔플합니다.
+  /// 빈 칸(힌트 타일 제외)의 정답 음절 목록을 셔플하여 팔레트를 초기화합니다.
+  ///
+  /// 힌트 타일은 이미 정답이 표시되므로 팔레트에 포함하지 않습니다.
+  /// 같은 음절이 여러 빈 칸에 사용될 경우 중복 포함됩니다.
   void _buildPalette() {
-    final syllables = <String>{};
+    final syllables = <String>[];
     for (final pw in _puzzle.placedWords) {
       for (int i = 0; i < pw.length; i++) {
+        final (r, c) = pw.positions[i];
+        if (_isHint(r, c)) continue; // 힌트 타일은 이미 오픈됨 → 팔레트 불필요
         syllables.add(pw.word.word[i]);
       }
     }
-    _palette = syllables.toList()..shuffle(Random(_level + 999));
+    syllables.shuffle(Random(_level + 999));
+    palette.assignAll(syllables);
+  }
+
+  /// 저장된 상태 로드 후 이미 정답이 채워진 칸의 음절을 팔레트에서 제거합니다.
+  void _syncPaletteAfterLoad() {
+    for (final pw in _puzzle.placedWords) {
+      for (int i = 0; i < pw.length; i++) {
+        final (r, c) = pw.positions[i];
+        if (_isHint(r, c)) continue;
+        if (_userInputs['$r,$c'] == pw.word.word[i]) {
+          // 이미 정답이 입력된 칸 → 팔레트에서 해당 음절 제거
+          palette.remove(pw.word.word[i]);
+        }
+      }
+    }
   }
 
   // ─── 세이브/로드 ─────────────────────────────────────────
@@ -154,7 +180,7 @@ class GameController extends GetxController with WidgetsBindingObserver {
     if (saved == null) return;
 
     elapsedSeconds.value = saved['elapsed'] as int;
-    hintsUsed.value      = saved['hintsUsed'] as int;
+    hintsUsed.value = saved['hintsUsed'] as int;
 
     final inputs = saved['inputs'] as Map<String, String>;
     _userInputs.addAll(inputs);
@@ -163,10 +189,10 @@ class GameController extends GetxController with WidgetsBindingObserver {
   /// 현재 게임 진행 상태를 로컬에 저장합니다.
   Future<void> _saveState() async {
     await _save.save(
-      level:          _level,
+      level: _level,
       elapsedSeconds: elapsedSeconds.value,
-      hintsUsed:      hintsUsed.value,
-      inputs:         Map<String, String>.from(_userInputs),
+      hintsUsed: hintsUsed.value,
+      inputs: Map<String, String>.from(_userInputs),
     );
   }
 
@@ -216,6 +242,8 @@ class GameController extends GetxController with WidgetsBindingObserver {
 
   // ─── 음절 입력 ───────────────────────────────────────────
   /// 팔레트에서 [syllable] 을 선택해 현재 칸에 입력합니다.
+  ///
+  /// 정답이면 팔레트에서 해당 음절을 제거합니다.
   void onSyllableTap(String syllable) {
     final pos = selectedPos.value;
     if (pos == null || isLevelComplete.value) return;
@@ -225,6 +253,12 @@ class GameController extends GetxController with WidgetsBindingObserver {
     final wordBeforeInput = currentWord; // 자동이동 전 현재 단어 보관
 
     _userInputs['${pos.$1},${pos.$2}'] = syllable;
+
+    // 정답이면 팔레트에서 해당 음절 제거
+    if (syllable == correctAnswer) {
+      palette.remove(syllable);
+    }
+
     _autoMove(pos);
     _saveState(); // 입력마다 상태 저장
 
@@ -280,9 +314,12 @@ class GameController extends GetxController with WidgetsBindingObserver {
     _revealRandomEmptyCell();
   }
 
-  /// [row],[col] 칸을 정답 음절로 채우고 힌트 사용 횟수를 1 증가시킵니다.
+  /// [row],[col] 칸을 정답 음절로 채우고, 팔레트에서 해당 음절을 제거하며,
+  /// 힌트 사용 횟수를 1 증가시킵니다.
   void _revealCell(int row, int col) {
-    _userInputs['$row,$col'] = _puzzle.grid[row][col];
+    final correctSyllable = _puzzle.grid[row][col];
+    _userInputs['$row,$col'] = correctSyllable;
+    palette.remove(correctSyllable); // 힌트 오픈 시 팔레트에서 제거
     hintsUsed.value++;
     _saveState();
     _checkLevelComplete();
@@ -325,7 +362,7 @@ class GameController extends GetxController with WidgetsBindingObserver {
   void _handleLevelComplete(bool complete) {
     if (!complete) return;
     _audio.playLevelClearSound(); // 레벨 클리어 효과음 즉시 재생
-    _tryShowInterstitial();       // 10레벨마다 전면 광고
+    _tryShowInterstitial(); // 10레벨마다 전면 광고
     Future.delayed(const Duration(milliseconds: 500), () async {
       // 이번 레벨 단어 목록을 단어장에 저장
       final wordEntries = _puzzle.placedWords
@@ -340,9 +377,9 @@ class GameController extends GetxController with WidgetsBindingObserver {
       Get.offNamed(
         AppRoutes.result,
         arguments: {
-          'level':   _level,
+          'level': _level,
           'elapsed': elapsedSeconds.value,
-          'words':   _puzzle.placedWords,
+          'words': _puzzle.placedWords,
         },
       );
     });

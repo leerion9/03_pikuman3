@@ -166,7 +166,7 @@ assets/
 
 ## 진행 상황
 
-> 마지막 업데이트: 2026-05-21 (Phase 7 완료 + 디바이스 실행 버그 수정)
+> 마지막 업데이트: 2026-05-21 (게임 플레이 버그 수정 1차)
 
 ### 완료된 작업
 - Flutter 프로젝트 생성 및 기본 패키지 설정
@@ -220,9 +220,17 @@ assets/
   - `android/app/src/main/AndroidManifest.xml` — `INTERNET` 권한 누락 추가 (AdMob 초기화 오류 방지)
   - `android/app/src/main/kotlin/com/interpage/pikuman3/MainActivity.kt` — 패키지명 불일치 수정 (`pikuman3_word_puzzle` → `pikuman3`): ClassNotFoundException 크래시 원인
   - 실기기(SM A546S, Android 16) 정상 실행 확인
+- **게임 플레이 버그 수정 1차** (2026-05-21)
+  - `crossword_grid_widget.dart` — 그리드 타일 정렬 불일치 수정 (margin→Padding 교체, SizedBox 통일) + 오른쪽 overflow 제거 (cellSize 계산식 수정)
+  - `game_controller.dart` — 팔레트 reactive화 (`RxList<String>`) + 힌트 타일 음절 팔레트 제외 + 정답 입력/힌트 오픈 시 해당 음절 팔레트에서 제거
+  - `syllable_palette_widget.dart` — 타일별 GlobalKey 및 index 콜백 추가 (애니메이션 위치 계산용)
+  - `game_page.dart` — StatefulWidget 변환 + 팔레트 타일 → 크로스워드 칸 날아가는 애니메이션(Overlay) 구현
+  - `main_controller.dart` — 테스트용 `goToLevel()` 메서드 추가
+  - `main_page.dart` — 테스트용 레벨 이동 UI 추가 (레벨 번호 입력 + 이동 버튼)
+  - `flutter analyze` 이슈 0개
 
 ### 다음 할 일
-- **게임 플레이 버그 수정** (실기기 테스트 중 발견된 오류들 수정 필요)
+- **게임 플레이 버그 추가 테스트** (실기기 재테스트 필요)
 - **Phase 8**: 완성도 & 출시 준비
   - 앱 아이콘 이미지 `assets/images/app_icon.png` 준비 후 `dart run flutter_launcher_icons` 실행
   - 스플래시·캐릭터 이미지 `assets/images/` 에 배치 (`pikuman_back.png` 등)

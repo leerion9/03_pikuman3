@@ -4,18 +4,23 @@ import 'package:flutter/material.dart';
 
 /// 음절 팔레트 위젯.
 ///
-/// 해당 레벨 퍼즐에 사용된 모든 단어의 음절을 중복 없이 타일로 표시합니다.
-/// 타일을 탭하면 [onTap] 콜백으로 선택된 음절을 전달합니다.
+/// 아직 정답이 채워지지 않은 빈 칸의 음절 타일을 표시합니다.
+/// 각 타일에 GlobalKey를 부여해 날아가는 애니메이션의 시작 위치 계산에 사용합니다.
+/// 타일을 탭하면 [onTap] 콜백으로 해당 타일의 인덱스와 음절을 전달합니다.
 class SyllablePaletteWidget extends StatelessWidget {
-  /// 표시할 음절 목록 (셔플됨)
+  /// 표시할 음절 목록
   final List<String> syllables;
 
-  /// 타일 탭 시 호출되는 콜백
-  final void Function(String syllable) onTap;
+  /// 타일별 GlobalKey 목록 (인덱스 대응). 애니메이션 위치 계산에 사용됩니다.
+  final List<GlobalKey> tileKeys;
+
+  /// 타일 탭 시 호출되는 콜백 (인덱스, 음절)
+  final void Function(int index, String syllable) onTap;
 
   const SyllablePaletteWidget({
     super.key,
     required this.syllables,
+    required this.tileKeys,
     required this.onTap,
   });
 
@@ -30,16 +35,21 @@ class SyllablePaletteWidget extends StatelessWidget {
           spacing: 8,
           runSpacing: 8,
           alignment: WrapAlignment.center,
-          children: syllables.map(_buildTile).toList(),
+          children: [
+            for (int i = 0; i < syllables.length; i++)
+              _buildTile(i, syllables[i]),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildTile(String syllable) {
+  Widget _buildTile(int index, String syllable) {
     return GestureDetector(
-      onTap: () => onTap(syllable),
+      onTap: () => onTap(index, syllable),
       child: Container(
+        // 애니메이션 시작 위치 계산을 위해 GlobalKey 부여
+        key: index < tileKeys.length ? tileKeys[index] : null,
         width: 48,
         height: 48,
         decoration: BoxDecoration(

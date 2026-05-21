@@ -7,9 +7,27 @@ import '../../../app/routes/app_pages.dart';
 import '../../../core/widgets/banner_ad_widget.dart';
 import '../controllers/main_controller.dart';
 
-/// 메인 화면
-class MainPage extends GetView<MainController> {
+/// 메인 화면.
+///
+/// StatefulWidget으로 구현해 테스트용 레벨 이동 TextField의 컨트롤러를 관리합니다.
+class MainPage extends StatefulWidget {
   const MainPage({super.key});
+
+  @override
+  State<MainPage> createState() => _MainPageState();
+}
+
+class _MainPageState extends State<MainPage> {
+  final MainController controller = Get.find<MainController>();
+
+  /// [테스트용] 레벨 번호 입력 필드 컨트롤러
+  final TextEditingController _levelInputCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _levelInputCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -97,8 +115,10 @@ class MainPage extends GetView<MainController> {
             icon: const Icon(Icons.play_arrow),
             label: const Text('PLAY'),
             style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
-              textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
+              textStyle: const TextStyle(
+                  fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(height: 14),
@@ -107,13 +127,86 @@ class MainPage extends GetView<MainController> {
             icon: const Icon(Icons.menu_book_outlined),
             label: const Text('단어장'),
             style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
               side: const BorderSide(color: Color(0xFFFF6B2B)),
               foregroundColor: const Color(0xFFFF6B2B),
             ),
           ),
+          const SizedBox(height: 24),
+          // ── 테스트용 레벨 이동 UI (출시 전 제거) ──────────────
+          _buildDebugLevelJump(),
         ],
       );
     });
+  }
+
+  /// [테스트용] 레벨 번호를 직접 입력해 해당 레벨로 이동하는 UI.
+  ///
+  /// 출시 전에 이 메서드 호출과 본 메서드를 함께 제거해야 합니다.
+  Widget _buildDebugLevelJump() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            '테스트용 레벨 이동',
+            style: TextStyle(fontSize: 11, color: Colors.grey),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 90,
+                child: TextField(
+                  controller: _levelInputCtrl,
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  decoration: InputDecoration(
+                    hintText: '레벨 번호',
+                    hintStyle:
+                        const TextStyle(fontSize: 12, color: Colors.grey),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 8),
+                    isDense: true,
+                  ),
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ),
+              const SizedBox(width: 10),
+              ElevatedButton(
+                onPressed: () {
+                  final level = int.tryParse(_levelInputCtrl.text.trim());
+                  if (level != null && level >= 1) {
+                    controller.goToLevel(level);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey.shade500,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 10),
+                  textStyle: const TextStyle(fontSize: 13),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text('이동'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
