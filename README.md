@@ -166,7 +166,7 @@ assets/
 
 ## 진행 상황
 
-> 마지막 업데이트: 2026-05-21 (게임 플레이 버그 수정 1차)
+> 마지막 업데이트: 2026-05-22 (게임 플레이 버그 수정 2차)
 
 ### 완료된 작업
 - Flutter 프로젝트 생성 및 기본 패키지 설정
@@ -228,9 +228,27 @@ assets/
   - `main_controller.dart` — 테스트용 `goToLevel()` 메서드 추가
   - `main_page.dart` — 테스트용 레벨 이동 UI 추가 (레벨 번호 입력 + 이동 버튼)
   - `flutter analyze` 이슈 0개
+- **게임 플레이 버그 수정 2차** (2026-05-22)
+  - `main_page.dart` — Play/단어장 버튼 가로 나란히 배치 (크기 축소) + overflow 수정 (SingleChildScrollView 적용)
+  - `game_enums.dart` — `filled` 상태 추가 (입력됐지만 단어 미완성, 판별 전 상태)
+  - `game_controller.dart` — 정답 판별 로직 전면 개선
+    - 음절 단위 판별 → **단어 전체 채워진 후** 정답/오답 판별로 변경
+    - `_judgedWords` (정답 확정 단어 목록) 추가
+    - 정답 확정 칸 수정 불가 처리 (`onSyllableTap` 가드)
+    - 정답 확정 후 **다음 미완성 단어로 커서 자동 이동** (`_moveToNextIncompleteWord`, 가로 우선)
+    - 오답 단어 전체 칸을 빨간색으로 표시 (`cellState` 수정)
+    - 입력된 개별 타일 탭 → 해당 타일만 팔레트로 반환 (`_clearSingleCell`)
+    - 힌트 오픈 시 `_judgedWords` 업데이트 추가 (`_revealCell`)
+    - **팔레트 교차점 중복 버그 수정** — 교차점 칸 음절이 2개 들어가던 문제 수정 (`_buildPalette`, `_syncPaletteAfterLoad` 좌표 Set 중복 방지)
+  - `game_page.dart` — 게임 화면 헤더에 설정 버튼 추가
+  - `crossword_grid_widget.dart` — 정답 확정 색상 초록→파란색 변경, `filled` 상태 연한 오렌지 색상 추가
+  - `flutter analyze` 이슈 0개
 
 ### 다음 할 일
-- **게임 플레이 버그 추가 테스트** (실기기 재테스트 필요)
+- **`level_design.csv` vs 실제 퍼즐 생성 불일치 점검** (다음 작업 우선 진행)
+  - `level_design.csv`의 word_count·hint_count 값이 실제 생성 퍼즐과 맞지 않는 레벨 확인
+  - 원인 분석 후 CSV 수정 또는 퍼즐 생성 로직 조정
+- **게임 플레이 추가 테스트** (실기기 재테스트 필요)
 - **Phase 8**: 완성도 & 출시 준비
   - 앱 아이콘 이미지 `assets/images/app_icon.png` 준비 후 `dart run flutter_launcher_icons` 실행
   - 스플래시·캐릭터 이미지 `assets/images/` 에 배치 (`pikuman_back.png` 등)

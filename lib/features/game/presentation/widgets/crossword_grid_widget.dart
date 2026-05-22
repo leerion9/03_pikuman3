@@ -103,8 +103,9 @@ class CrosswordGridWidget extends StatelessWidget {
         CellDisplayState.activeWord => const Color(0xFFBBDEFB), // blue-100
         CellDisplayState.selected => const Color(0xFFFFD54F), // amber-300
         CellDisplayState.hint => const Color(0xFFA5D6A7), // green-200
-        CellDisplayState.correct => const Color(0xFF81C784), // green-300
-        CellDisplayState.incorrect => const Color(0xFFEF9A9A), // red-200
+        CellDisplayState.filled => const Color(0xFFFFE0B2), // orange-100 (입력됐지만 판별 전)
+        CellDisplayState.correct => const Color(0xFF90CAF9), // blue-200 (정답 확정)
+        CellDisplayState.incorrect => const Color(0xFFEF9A9A), // red-200 (오답)
       };
 
   /// 셀 텍스트 색상: 오답은 진한 빨간색, 그 외는 진한 회색

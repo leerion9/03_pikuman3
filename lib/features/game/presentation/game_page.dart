@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../app/routes/app_pages.dart';
 import '../../../core/engine/puzzle_model.dart';
 import '../../../core/widgets/banner_ad_widget.dart';
 import '../controllers/game_controller.dart';
@@ -105,7 +106,11 @@ class _GamePageState extends State<GamePage> {
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined, color: Colors.white),
+            onPressed: () => Get.toNamed(AppRoutes.settings),
+            tooltip: '설정',
+          ),
         ],
       ),
     );

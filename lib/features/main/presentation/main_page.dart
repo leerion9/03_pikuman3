@@ -67,13 +67,25 @@ class _MainPageState extends State<MainPage> {
   }
 
   Widget _buildCenter(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _buildCharacterImage(context),
-        const SizedBox(height: 24),
-        _buildLevelAndButtons(),
-      ],
+    // 화면이 작을 경우 스크롤 가능하게, 충분히 크면 가운데 정렬
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: IntrinsicHeight(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildCharacterImage(context),
+                  const SizedBox(height: 24),
+                  _buildLevelAndButtons(),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -109,29 +121,36 @@ class _MainPageState extends State<MainPage> {
               ),
             ),
           ),
-          const SizedBox(height: 28),
-          ElevatedButton.icon(
-            onPressed: controller.goToGame,
-            icon: const Icon(Icons.play_arrow),
-            label: const Text('PLAY'),
-            style: ElevatedButton.styleFrom(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
-              textStyle: const TextStyle(
-                  fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-          ),
-          const SizedBox(height: 14),
-          OutlinedButton.icon(
-            onPressed: controller.goToWordbook,
-            icon: const Icon(Icons.menu_book_outlined),
-            label: const Text('단어장'),
-            style: OutlinedButton.styleFrom(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-              side: const BorderSide(color: Color(0xFFFF6B2B)),
-              foregroundColor: const Color(0xFFFF6B2B),
-            ),
+          const SizedBox(height: 24),
+          // Play / 단어장 버튼을 좌우로 나란히 배치
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton.icon(
+                onPressed: controller.goToGame,
+                icon: const Icon(Icons.play_arrow, size: 20),
+                label: const Text('PLAY'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 28, vertical: 12),
+                  textStyle: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(width: 16),
+              OutlinedButton.icon(
+                onPressed: controller.goToWordbook,
+                icon: const Icon(Icons.menu_book_outlined, size: 20),
+                label: const Text('단어장'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 24, vertical: 12),
+                  side: const BorderSide(color: Color(0xFFFF6B2B)),
+                  foregroundColor: const Color(0xFFFF6B2B),
+                  textStyle: const TextStyle(fontSize: 16),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 24),
           // ── 테스트용 레벨 이동 UI (출시 전 제거) ──────────────

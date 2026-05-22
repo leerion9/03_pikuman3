@@ -66,10 +66,16 @@ class GameController extends GetxController with WidgetsBindingObserver {
 
   /// 음절 팔레트 (반응형).
   ///
-  /// 아직 정답이 채워지지 않은 빈 칸의 음절만 포함합니다.
+  /// 아직 칸에 배치되지 않은 음절 목록입니다.
   /// 힌트 타일(미리 오픈된 칸)은 처음부터 포함하지 않습니다.
-  /// 정답 음절이 입력되거나 힌트로 오픈되면 해당 음절이 제거됩니다.
+  /// 음절이 칸에 입력되면 팔레트에서 제거되고, 단어 초기화 시 다시 추가됩니다.
   final palette = <String>[].obs;
+
+  /// 정답으로 확정된 단어의 인덱스 목록 (반응형).
+  ///
+  /// 단어의 모든 빈 칸이 채워지고 모두 정답인 경우에만 추가됩니다.
+  /// 단어가 초기화되면 제거됩니다.
+  final _judgedWords = <int>[].obs;
 
   Timer? _timer;
 
@@ -144,13 +150,17 @@ class GameController extends GetxController with WidgetsBindingObserver {
   /// 빈 칸(힌트 타일 제외)의 정답 음절 목록을 셔플하여 팔레트를 초기화합니다.
   ///
   /// 힌트 타일은 이미 정답이 표시되므로 팔레트에 포함하지 않습니다.
-  /// 같은 음절이 여러 빈 칸에 사용될 경우 중복 포함됩니다.
+  /// 교차점 칸은 두 단어에 걸쳐 있지만 물리적으로 하나의 칸이므로
+  /// 좌표 Set으로 중복을 방지하여 정확히 1번만 추가합니다.
   void _buildPalette() {
     final syllables = <String>[];
+    final addedPositions = <(int, int)>{}; // 이미 추가된 칸 좌표 (교차점 중복 방지)
     for (final pw in _puzzle.placedWords) {
       for (int i = 0; i < pw.length; i++) {
         final (r, c) = pw.positions[i];
         if (_isHint(r, c)) continue; // 힌트 타일은 이미 오픈됨 → 팔레트 불필요
+        if (addedPositions.contains((r, c))) continue; // 교차점 중복 추가 방지
+        addedPositions.add((r, c));
         syllables.add(pw.word.word[i]);
       }
     }
@@ -158,16 +168,31 @@ class GameController extends GetxController with WidgetsBindingObserver {
     palette.assignAll(syllables);
   }
 
-  /// 저장된 상태 로드 후 이미 정답이 채워진 칸의 음절을 팔레트에서 제거합니다.
+  /// 저장된 상태 로드 후 팔레트와 _judgedWords를 동기화합니다.
+  ///
+  /// - 이미 입력된 칸의 음절은 팔레트에서 제거합니다 (정답/오답 무관).
+  /// - 교차점 중복 제거를 방지하기 위해 좌표 Set으로 처리된 칸을 추적합니다.
+  /// - 완전히 채워지고 모두 정답인 단어는 _judgedWords에 추가합니다.
   void _syncPaletteAfterLoad() {
+    // 입력된 모든 음절을 팔레트에서 제거 (교차점은 한 번만 처리)
+    final removedPositions = <(int, int)>{};
     for (final pw in _puzzle.placedWords) {
       for (int i = 0; i < pw.length; i++) {
         final (r, c) = pw.positions[i];
         if (_isHint(r, c)) continue;
-        if (_userInputs['$r,$c'] == pw.word.word[i]) {
-          // 이미 정답이 입력된 칸 → 팔레트에서 해당 음절 제거
-          palette.remove(pw.word.word[i]);
+        if (removedPositions.contains((r, c))) continue; // 교차점 중복 방지
+        final input = _userInputs['$r,$c'];
+        if (input != null) {
+          removedPositions.add((r, c));
+          palette.remove(input);
         }
+      }
+    }
+    // 완성된 정답 단어를 _judgedWords에 등록
+    for (int i = 0; i < _puzzle.placedWords.length; i++) {
+      final pw = _puzzle.placedWords[i];
+      if (_isWordInputFull(pw) && _isWordComplete(pw)) {
+        _judgedWords.add(i);
       }
     }
   }
@@ -208,9 +233,10 @@ class GameController extends GetxController with WidgetsBindingObserver {
   // ─── 칸 선택 ─────────────────────────────────────────────
   /// [row], [col] 칸을 선택합니다.
   ///
-  /// - 단어가 없는 칸(검은 칸)은 무시합니다.
-  /// - 교차점 칸을 재선택하면 가로 ↔ 세로 방향을 전환합니다.
-  /// - 기본 선택 방향은 가로 우선입니다.
+  /// 칸 상태에 따른 동작:
+  ///  - 정답 확정 칸(correct): 수정 불가. 교차점에서 미완성 단어가 있으면 그 단어로 전환.
+  ///  - 입력된 칸(filled/incorrect): 해당 칸 하나만 팔레트로 반환 후 그 칸 선택.
+  ///  - 빈 칸(empty/activeWord): 기존 선택 로직 (가로 우선, 교차점 방향 전환).
   void onCellTap(int row, int col) {
     if (isLevelComplete.value) return;
     if (_puzzle.grid[row][col].isEmpty) return;
@@ -221,56 +247,194 @@ class GameController extends GetxController with WidgetsBindingObserver {
         .toList();
     if (wordsHere.isEmpty) return;
 
-    if (selectedPos.value == pos && wordsHere.length > 1) {
-      // 같은 교차점 재선택 → 방향 전환
+    final state = cellState(row, col);
+
+    // ── 정답 확정 칸: 수정 불가 ──────────────────────────────
+    if (state == CellDisplayState.correct) {
+      // 교차점에서 미완성 단어가 있으면 그 단어로 방향 전환
+      final incompleteWords = wordsHere
+          .where((w) => !_judgedWords.contains(_puzzle.placedWords.indexOf(w)))
+          .toList();
+      if (incompleteWords.isEmpty) return; // 모두 확정 → 무시
+      final horiz = incompleteWords
+          .where((w) => w.direction == Direction.across)
+          .firstOrNull;
+      currentWordIndex.value =
+          _puzzle.placedWords.indexOf(horiz ?? incompleteWords.first);
+      selectedPos.value = pos;
+      _audio.playCellSelectSound();
+      return;
+    }
+
+    // ── 입력된 칸(filled/incorrect): 해당 칸만 팔레트로 반환 ──
+    if (state == CellDisplayState.filled ||
+        state == CellDisplayState.incorrect) {
+      _clearSingleCell(row, col);
+      // 이 칸에서 계속 입력 가능하도록 미완성 단어 선택
+      final validWords = wordsHere
+          .where((w) => !_judgedWords.contains(_puzzle.placedWords.indexOf(w)))
+          .toList();
+      if (validWords.isNotEmpty) {
+        final horiz = validWords
+            .where((w) => w.direction == Direction.across)
+            .firstOrNull;
+        currentWordIndex.value =
+            _puzzle.placedWords.indexOf(horiz ?? validWords.first);
+      }
+      selectedPos.value = pos;
+      _audio.playCellSelectSound();
+      return;
+    }
+
+    // ── 빈 칸(empty/activeWord): 기존 선택 로직 ─────────────
+    final validWords = wordsHere
+        .where((w) => !_judgedWords.contains(_puzzle.placedWords.indexOf(w)))
+        .toList();
+    if (validWords.isEmpty) return;
+
+    if (selectedPos.value == pos && validWords.length > 1) {
+      // 교차점 재선택 → 미완성 단어 중 방향 전환
       final curDir = currentWord?.direction;
-      final toggled = wordsHere.firstWhere(
+      final toggled = validWords.firstWhere(
         (w) => w.direction != curDir,
-        orElse: () => wordsHere.first,
+        orElse: () => validWords.first,
       );
       currentWordIndex.value = _puzzle.placedWords.indexOf(toggled);
     } else {
       // 새 칸 선택: 가로 단어 우선
-      final horiz =
-          wordsHere.where((w) => w.direction == Direction.across).firstOrNull;
+      final horiz = validWords
+          .where((w) => w.direction == Direction.across)
+          .firstOrNull;
       currentWordIndex.value =
-          _puzzle.placedWords.indexOf(horiz ?? wordsHere.first);
+          _puzzle.placedWords.indexOf(horiz ?? validWords.first);
     }
     selectedPos.value = pos;
-    _audio.playCellSelectSound(); // 빈칸 선택 효과음
+    _audio.playCellSelectSound();
   }
 
   // ─── 음절 입력 ───────────────────────────────────────────
   /// 팔레트에서 [syllable] 을 선택해 현재 칸에 입력합니다.
   ///
-  /// 정답이면 팔레트에서 해당 음절을 제거합니다.
+  /// 동작 규칙:
+  ///  - 정답 확정된 단어의 칸은 수정 불가 → 무시합니다.
+  ///  - 단어의 모든 빈 칸이 채워진 후에 정답 여부를 판별합니다.
+  ///  - 정답 확정 시 → 다음 미완성 단어로 커서 자동 이동.
+  ///  - 오답 시 → 현재 위치 유지 (사용자가 개별 타일 탭으로 수정).
   void onSyllableTap(String syllable) {
     final pos = selectedPos.value;
     if (pos == null || isLevelComplete.value) return;
     if (_isHint(pos.$1, pos.$2)) return; // 퍼즐 힌트 칸은 입력 불가
 
-    final correctAnswer = _puzzle.grid[pos.$1][pos.$2];
-    final wordBeforeInput = currentWord; // 자동이동 전 현재 단어 보관
+    // 정답 확정된 단어의 칸은 수정 불가
+    final isInJudgedWord = _puzzle.placedWords.any((w) =>
+        _judgedWords.contains(_puzzle.placedWords.indexOf(w)) &&
+        w.positions.contains(pos));
+    if (isInJudgedWord) return;
 
     _userInputs['${pos.$1},${pos.$2}'] = syllable;
+    palette.remove(syllable); // 입력된 음절은 팔레트에서 즉시 제거
 
-    // 정답이면 팔레트에서 해당 음절 제거
-    if (syllable == correctAnswer) {
-      palette.remove(syllable);
+    // 이 칸이 속한 모든 단어에 대해 완성 여부 확인 후 정답/오답 판별
+    final wordsAtPos = _puzzle.placedWords
+        .where((w) => w.positions.contains(pos))
+        .toList();
+
+    bool anyWordCompleted = false;
+    bool anyWrongAnswer = false;
+
+    for (final word in wordsAtPos) {
+      final wordIdx = _puzzle.placedWords.indexOf(word);
+      if (_judgedWords.contains(wordIdx)) continue; // 이미 확정된 단어 건너뜀
+      if (!_isWordInputFull(word)) continue; // 아직 미완성 단어 건너뜀
+
+      if (_isWordComplete(word)) {
+        if (!_judgedWords.contains(wordIdx)) {
+          _judgedWords.add(wordIdx);
+        }
+        anyWordCompleted = true;
+      } else {
+        anyWrongAnswer = true;
+      }
     }
 
-    _autoMove(pos);
-    _saveState(); // 입력마다 상태 저장
-
-    // 정답 여부에 따라 효과음 + 햅틱 피드백
-    if (syllable != correctAnswer) {
+    // 효과음·이동 처리
+    if (anyWrongAnswer) {
       _audio.playWrongAnswerSound();
-      _vibrate(); // 오답 진동
-    } else if (wordBeforeInput != null && _isWordComplete(wordBeforeInput)) {
-      _audio.playWordCompleteSound(); // 단어 완성 효과음
+      _vibrate();
+      // 오답 시 현재 위치 유지 (사용자가 타일 탭으로 개별 수정)
+    } else if (anyWordCompleted) {
+      _audio.playWordCompleteSound();
+      _moveToNextIncompleteWord(); // 정답 확정 후 다음 미완성 단어로 커서 이동
+    } else {
+      _autoMove(pos); // 미완성: 같은 단어의 다음 빈칸으로 이동
     }
 
+    _saveState();
     _checkLevelComplete();
+  }
+
+  /// [word] 의 모든 비-힌트 칸에 입력값이 있는지 확인합니다 (정답 여부 무관).
+  bool _isWordInputFull(PlacedWord word) {
+    for (int i = 0; i < word.length; i++) {
+      final (r, c) = word.positions[i];
+      if (_isHint(r, c)) continue;
+      if (!_hasInput(r, c)) return false;
+    }
+    return true;
+  }
+
+  /// [row], [col] 칸 하나의 입력만 초기화하고 팔레트로 돌려보냅니다.
+  ///
+  /// 정답 확정 단어에 속한 칸은 초기화하지 않습니다.
+  void _clearSingleCell(int row, int col) {
+    if (_isHint(row, col)) return;
+    // 정답 확정 단어에 속한 칸은 수정 불가
+    final inJudgedWord = _puzzle.placedWords.any((w) =>
+        _judgedWords.contains(_puzzle.placedWords.indexOf(w)) &&
+        w.positions.contains((row, col)));
+    if (inJudgedWord) return;
+
+    final input = _userInputs['$row,$col'];
+    if (input != null) {
+      palette.add(input); // 팔레트로 반환
+      _userInputs.remove('$row,$col');
+      _saveState();
+    }
+  }
+
+  /// 정답 확정 후, 아직 완성되지 않은 다음 단어의 첫 번째 빈칸으로 커서를 이동합니다.
+  ///
+  /// 가로(across) 단어를 세로(down) 단어보다 우선합니다.
+  void _moveToNextIncompleteWord() {
+    final incompleteWords = <PlacedWord>[];
+    // 가로 단어 먼저
+    for (int i = 0; i < _puzzle.placedWords.length; i++) {
+      if (_judgedWords.contains(i)) continue;
+      if (_puzzle.placedWords[i].direction == Direction.across) {
+        incompleteWords.add(_puzzle.placedWords[i]);
+      }
+    }
+    // 세로 단어
+    for (int i = 0; i < _puzzle.placedWords.length; i++) {
+      if (_judgedWords.contains(i)) continue;
+      if (_puzzle.placedWords[i].direction == Direction.down) {
+        incompleteWords.add(_puzzle.placedWords[i]);
+      }
+    }
+    if (incompleteWords.isEmpty) return; // 모든 단어 완성
+
+    final nextWord = incompleteWords.first;
+    currentWordIndex.value = _puzzle.placedWords.indexOf(nextWord);
+    // 첫 번째 빈칸으로 이동 (힌트·이미 입력된 칸 제외)
+    for (int i = 0; i < nextWord.length; i++) {
+      final (r, c) = nextWord.positions[i];
+      if (!_isHint(r, c) && !_hasInput(r, c)) {
+        selectedPos.value = (r, c);
+        return;
+      }
+    }
+    // 빈 칸이 없으면 첫 칸으로 (모든 칸이 힌트로 채워진 경우)
+    selectedPos.value = nextWord.positions.first;
   }
 
   /// 입력 후 현재 단어에서 다음 빈 칸으로 커서를 자동 이동합니다.
@@ -315,12 +479,24 @@ class GameController extends GetxController with WidgetsBindingObserver {
   }
 
   /// [row],[col] 칸을 정답 음절로 채우고, 팔레트에서 해당 음절을 제거하며,
-  /// 힌트 사용 횟수를 1 증가시킵니다.
+  /// 힌트 사용 횟수를 1 증가시킵니다. 힌트로 단어가 완성되면 _judgedWords에 추가합니다.
   void _revealCell(int row, int col) {
     final correctSyllable = _puzzle.grid[row][col];
     _userInputs['$row,$col'] = correctSyllable;
-    palette.remove(correctSyllable); // 힌트 오픈 시 팔레트에서 제거
+    palette.remove(correctSyllable);
     hintsUsed.value++;
+
+    // 이 칸이 속한 단어들이 힌트로 완성됐는지 확인
+    final pos = (row, col);
+    for (int i = 0; i < _puzzle.placedWords.length; i++) {
+      final pw = _puzzle.placedWords[i];
+      if (!pw.positions.contains(pos)) continue;
+      if (_judgedWords.contains(i)) continue;
+      if (_isWordInputFull(pw) && _isWordComplete(pw)) {
+        _judgedWords.add(i);
+      }
+    }
+
     _saveState();
     _checkLevelComplete();
   }
@@ -344,17 +520,14 @@ class GameController extends GetxController with WidgetsBindingObserver {
   }
 
   // ─── 레벨 클리어 감지 ────────────────────────────────────
-  /// 모든 빈 칸이 정답으로 채워졌는지 확인합니다.
+  /// 모든 단어가 정답으로 확정됐는지 확인합니다.
+  ///
+  /// [_judgedWords]에 모든 단어 인덱스가 포함된 경우 레벨 클리어로 처리합니다.
   void _checkLevelComplete() {
-    for (final pw in _puzzle.placedWords) {
-      for (int i = 0; i < pw.length; i++) {
-        final (r, c) = pw.positions[i];
-        if (_isHint(r, c)) continue; // 퍼즐 힌트 칸은 이미 정답
-        if (_userInputs['$r,$c'] != pw.word.word[i]) return; // 틀리거나 비어 있음
-      }
+    if (_judgedWords.length >= _puzzle.placedWords.length) {
+      isLevelComplete.value = true;
+      _timer?.cancel();
     }
-    isLevelComplete.value = true;
-    _timer?.cancel();
   }
 
   /// 레벨 클리어 시 처리합니다.
@@ -387,6 +560,9 @@ class GameController extends GetxController with WidgetsBindingObserver {
 
   // ─── 칸 상태 조회 (그리드 위젯에서 사용) ─────────────────
   /// [row], [col] 칸의 시각적 표시 상태를 반환합니다.
+  ///
+  /// 정답 판별은 단어 전체가 채워진 후에만 이루어집니다.
+  /// 입력됐지만 단어가 아직 미완성인 경우 [CellDisplayState.filled]를 반환합니다.
   CellDisplayState cellState(int row, int col) {
     if (_puzzle.grid[row][col].isEmpty) return CellDisplayState.inactive;
     if (selectedPos.value == (row, col)) return CellDisplayState.selected;
@@ -394,9 +570,28 @@ class GameController extends GetxController with WidgetsBindingObserver {
 
     final input = _userInputs['$row,$col'];
     if (input != null) {
-      return input == _puzzle.grid[row][col]
-          ? CellDisplayState.correct
-          : CellDisplayState.incorrect;
+      final wordsHere = _puzzle.placedWords
+          .where((w) => w.positions.contains((row, col)))
+          .toList();
+
+      // 정답으로 확정된 단어에 속하면 → correct
+      final inJudgedWord = wordsHere
+          .any((w) => _judgedWords.contains(_puzzle.placedWords.indexOf(w)));
+      if (inJudgedWord) return CellDisplayState.correct;
+
+      // 속한 단어 중 하나라도 완전히 채워진 경우 → 정답/오답 판별
+      final inFullWord = wordsHere.any(_isWordInputFull);
+      if (inFullWord) {
+        // 오답 단어에 속하면 → 개별 칸 정답 여부와 무관하게 단어 전체를 incorrect로 표시
+        final inWrongWord = wordsHere.any((w) =>
+            _isWordInputFull(w) &&
+            !_judgedWords.contains(_puzzle.placedWords.indexOf(w)));
+        if (inWrongWord) return CellDisplayState.incorrect;
+        return CellDisplayState.correct;
+      }
+
+      // 단어가 아직 미완성 → 입력됐지만 판별 전 상태
+      return CellDisplayState.filled;
     }
 
     final cw = currentWord;
