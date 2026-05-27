@@ -74,7 +74,7 @@ class HintTile {
 /// 퍼즐 보드 전체 (배치된 단어 + 힌트 타일 포함)
 class PuzzleBoard {
   /// 보드 세로 칸 수 (행)
-  static const int boardRows = 8;
+  static const int boardRows = 12;
 
   /// 보드 가로 칸 수 (열)
   static const int boardCols = 10;

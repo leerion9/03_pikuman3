@@ -17,7 +17,7 @@ class GameConstants {
   static const int gridCols = 10;
 
   /// 크로스워드 판의 세로 칸 수
-  static const int gridRows = 8;
+  static const int gridRows = 12;
 
   /// 사용 가능한 최소 음절 수
   static const int minSyllables = 3;

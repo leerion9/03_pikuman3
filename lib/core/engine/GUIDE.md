@@ -8,7 +8,7 @@
 | 파일 | 설명 |
 |------|------|
 | `puzzle_generator.dart` | 시드를 받아 퍼즐 전체를 생성하는 메인 엔진 |
-| `word_placer.dart` | Incremental Growth 방식으로 단어를 10×8 판에 배치 |
+| `word_placer.dart` | Incremental Growth 방식으로 단어를 10×12 판에 배치 |
 | `placement_validator.dart` | 옆구리 접촉 금지·평행 배치 금지·헤드/테일 여유 공간 규칙 검증 |
 | `hint_selector.dart` | 교차점 우선으로 힌트 타일을 선정 (단어당 최대 2개) |
 | `puzzle_model.dart` | 퍼즐 데이터 모델 (배치된 단어 목록, 그리드 상태) |

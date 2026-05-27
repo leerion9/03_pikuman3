@@ -2,38 +2,49 @@
 
 import 'dart:math';
 
+import '../constants/game_constants.dart';
 import '../data/word_model.dart';
 import 'puzzle_model.dart';
 
-/// 크로스워드 단어 배치기 (Incremental Growth 방식).
+/// 크로스워드 단어 배치기 (Incremental Growth + Backtracking 방식).
 ///
 /// 동작 순서:
 ///  1. 첫 단어를 보드 중앙에 가로로 배치
 ///  2. 이미 배치된 단어와 교차 가능한 모든 후보 위치를 탐색
 ///  3. 후보를 랜덤 셔플 후 유효한 위치에 배치
-///  4. word_count 에 도달하거나 단어 풀이 소진될 때까지 반복
-///  5. 한 단어에 대해 유효 위치가 없으면 다음 단어로 넘어감 (Freezing 방지)
+///  4. word_count 에 도달할 때까지 재귀적으로 다음 단어 배치
+///  5. 막다른 길이면 마지막 단어를 롤백하고 다른 위치·조합 재시도 (Backtracking)
+///  6. 단어 하나에 대해 백트래킹 500회 초과 시 해당 단어를 포기하고
+///     시드 순서상 다음 단어로 교체 (Freezing 방지)
 class WordPlacer {
   /// 보드 행 수 (세로)
-  static const int _rows = PuzzleBoard.boardRows; // 8
+  static const int _rows = PuzzleBoard.boardRows;
 
   /// 보드 열 수 (가로)
-  static const int _cols = PuzzleBoard.boardCols; // 10
+  static const int _cols = PuzzleBoard.boardCols;
+
+  /// 무한 루프 방지용 전체 백트래킹 상한
+  static const int _maxTotalBacktracks = 50000;
 
   /// 시드 기반 난수 생성기
   final Random _rng;
 
   /// 배치 중인 2D 격자: _grid[row][col] = 음절 문자 (빈칸이면 '')
-  final List<List<String>> _grid;
+  late List<List<String>> _grid;
 
   /// 배치 완료된 단어 목록
-  final List<PlacedWord> _placed;
+  final List<PlacedWord> _placed = [];
+
+  /// 현재 탐색에서 누적된 백트래킹(롤백) 횟수
+  int _backtrackCount = 0;
+
+  /// 500회 초과로 배치를 포기한 word_pool 인덱스
+  final Set<int> _abandonedPoolIndices = {};
 
   /// [seed] 를 시드로 사용해 WordPlacer 를 생성합니다.
-  WordPlacer(int seed)
-      : _rng = Random(seed),
-        _grid = List.generate(_rows, (_) => List.filled(_cols, '')),
-        _placed = [];
+  WordPlacer(int seed) : _rng = Random(seed) {
+    _resetGrid();
+  }
 
   // ─── 공개 API ────────────────────────────────────────────
 
@@ -43,14 +54,14 @@ class WordPlacer {
   List<PlacedWord> place(List<WordModel> pool, int wordCount) {
     if (pool.isEmpty) return const [];
 
-    // 첫 번째 단어: 교차 없이 중앙에 배치
+    _resetGrid();
     _placeFirstWord(pool[0]);
 
-    // 나머지 단어를 순서대로 시도 (배치 실패 시 다음 단어로 넘어감)
-    for (int i = 1; i < pool.length && _placed.length < wordCount; i++) {
-      _tryPlace(pool[i]);
+    if (wordCount <= 1) {
+      return List.unmodifiable(_placed);
     }
 
+    _solve(pool, wordCount, 1);
     return List.unmodifiable(_placed);
   }
 
@@ -58,31 +69,84 @@ class WordPlacer {
   List<List<String>> get grid =>
       _grid.map((row) => List<String>.from(row)).toList();
 
+  // ─── 백트래킹 탐색 ───────────────────────────────────────
+
+  /// [poolIdx] 번째 단어부터 시도하며 [targetCount] 개 배치를 목표로 탐색합니다.
+  ///
+  /// 단어 스킵은 while 루프로 처리해 pool 크기만큼 재귀 깊이가 늘지 않게 합니다.
+  /// 성공하면 true, 더 이상 진행할 수 없으면 false 를 반환합니다.
+  bool _solve(List<WordModel> pool, int targetCount, int poolIdx) {
+    while (poolIdx < pool.length) {
+      if (_placed.length >= targetCount) return true;
+      if (_backtrackCount >= _maxTotalBacktracks) return false;
+
+      if (!_abandonedPoolIndices.contains(poolIdx) &&
+          _tryPlaceWord(pool, targetCount, poolIdx)) {
+        return true;
+      }
+
+      // 배치 실패 또는 포기한 단어 → 다음 pool 순번으로 스킵 (재귀 없음)
+      poolIdx++;
+    }
+
+    return _placed.length >= targetCount;
+  }
+
+  /// [poolIdx] 단어를 하나 배치해 보고, 성공 시 재귀적으로 다음 단어를 이어갑니다.
+  bool _tryPlaceWord(List<WordModel> pool, int targetCount, int poolIdx) {
+    final word = pool[poolIdx];
+    final candidates = _findCandidates(word)..shuffle(_rng);
+
+    for (final (r, c, dir) in candidates) {
+      if (!_isValid(word, r, c, dir)) continue;
+
+      _apply(word, r, c, dir);
+      if (_solve(pool, targetCount, poolIdx + 1)) return true;
+
+      _undoLast();
+      _backtrackCount++;
+
+      if (_backtrackCount >= GameConstants.maxBacktrackCount) {
+        _abandonedPoolIndices.add(poolIdx);
+        _backtrackCount = 0;
+        return false;
+      }
+    }
+
+    return false;
+  }
+
   // ─── 내부 메서드 ─────────────────────────────────────────
+
+  /// 격자·배치 상태·백트래킹 카운터를 초기화합니다.
+  void _resetGrid() {
+    _grid = List.generate(_rows, (_) => List.filled(_cols, ''));
+    _placed.clear();
+    _backtrackCount = 0;
+    _abandonedPoolIndices.clear();
+  }
 
   /// 첫 단어를 보드 중앙에 가로로 배치합니다.
   void _placeFirstWord(WordModel word) {
-    final row = _rows ~/ 2 - 1; // 세로 중앙 (행 3)
-    final col = (_cols - word.syllableCount) ~/ 2; // 가로 중앙
+    final row = _rows ~/ 2 - 1;
+    final col = (_cols - word.syllableCount) ~/ 2;
     if (col >= 0) _apply(word, row, col, Direction.across);
   }
 
-  /// 단어 하나를 보드에 배치 시도합니다. 유효 위치가 없으면 조용히 건너뜁니다.
-  void _tryPlace(WordModel word) {
-    final candidates = _findCandidates(word)..shuffle(_rng);
-    for (final (r, c, dir) in candidates) {
-      if (_isValid(word, r, c, dir)) {
-        _apply(word, r, c, dir);
-        return;
-      }
+  /// 마지막으로 배치한 단어를 롤백합니다. 교차점은 다른 단어가 쓰는 칸은 유지합니다.
+  void _undoLast() {
+    if (_placed.isEmpty) return;
+
+    final removed = _placed.removeLast();
+    for (final (r, c) in removed.positions) {
+      final stillUsed =
+          _placed.any((pw) => pw.positions.contains((r, c)));
+      if (!stillUsed) _grid[r][c] = '';
     }
   }
 
   /// 보드에서 [word] 를 배치할 수 있는 후보 위치 목록을 반환합니다.
-  ///
-  /// 기존에 배치된 단어의 글자와 교차할 수 있는 (행, 열, 방향) 조합을 탐색합니다.
   List<(int, int, Direction)> _findCandidates(WordModel word) {
-    // Set 을 사용해 중복 후보 제거
     final result = <(int, int, Direction)>{};
 
     for (int r = 0; r < _rows; r++) {
@@ -90,14 +154,9 @@ class WordPlacer {
         if (_grid[r][c].isEmpty) continue;
         final ch = _grid[r][c];
 
-        // 새 단어의 글자 중 일치하는 인덱스 i 를 찾아 후보 추가
         for (int i = 0; i < word.syllableCount; i++) {
           if (word.word[i] != ch) continue;
-
-          // 가로 배치: i번째 글자가 (r, c) 위치 → 시작 열 = c - i
           result.add((r, c - i, Direction.across));
-
-          // 세로 배치: i번째 글자가 (r, c) 위치 → 시작 행 = r - i
           result.add((r - i, c, Direction.down));
         }
       }
@@ -107,17 +166,9 @@ class WordPlacer {
   }
 
   /// 주어진 위치·방향으로 [word] 를 배치할 수 있는지 검사합니다.
-  ///
-  /// 아래의 규칙을 모두 통과해야 배치 가능 판정을 내립니다:
-  ///  - 보드 범위 내에 완전히 들어올 것
-  ///  - 단어 머리·꼬리의 앞뒤 칸이 비어 있을 것
-  ///  - 기존 글자와 충돌 없이 교차할 것 (같은 방향 단어가 이미 있으면 불가)
-  ///  - 비교차 칸의 수직 인접 칸이 비어 있을 것 (평행 접촉 금지)
-  ///  - 최소 1개 이상의 교차점이 있을 것
   bool _isValid(WordModel word, int startRow, int startCol, Direction dir) {
     final len = word.syllableCount;
 
-    // ── 1) 범위 체크 ──────────────────────────────────────
     if (dir == Direction.across) {
       if (startRow < 0 || startRow >= _rows) return false;
       if (startCol < 0 || startCol + len > _cols) return false;
@@ -126,7 +177,6 @@ class WordPlacer {
       if (startRow < 0 || startRow + len > _rows) return false;
     }
 
-    // ── 2) 머리·꼬리 여유 공간 체크 ──────────────────────
     if (dir == Direction.across) {
       if (startCol > 0 && _grid[startRow][startCol - 1].isNotEmpty) {
         return false;
@@ -147,27 +197,21 @@ class WordPlacer {
 
     bool hasIntersection = false;
 
-    // ── 3) 각 칸 검사 ─────────────────────────────────────
     for (int i = 0; i < len; i++) {
       final r = dir == Direction.across ? startRow : startRow + i;
       final c = dir == Direction.across ? startCol + i : startCol;
       final expected = word.word[i];
 
       if (_grid[r][c].isNotEmpty) {
-        // 기존 글자와 다르면 배치 불가
         if (_grid[r][c] != expected) return false;
-
-        // 같은 방향 단어가 이미 이 칸을 사용 중이면 배치 불가
         if (_hasWordThrough(r, c, dir)) return false;
 
-        // 반드시 수직 방향 단어가 있어야 교차점으로 인정
         final perpDir =
             dir == Direction.across ? Direction.down : Direction.across;
         if (!_hasWordThrough(r, c, perpDir)) return false;
 
         hasIntersection = true;
       } else {
-        // 빈 칸: 수직 인접 칸이 비어 있어야 함 (평행 접촉 금지)
         if (dir == Direction.across) {
           if (r > 0 && _grid[r - 1][c].isNotEmpty) return false;
           if (r + 1 < _rows && _grid[r + 1][c].isNotEmpty) return false;
@@ -178,7 +222,6 @@ class WordPlacer {
       }
     }
 
-    // 최소 1개 이상의 교차점이 있어야 배치 가능
     return hasIntersection;
   }
 

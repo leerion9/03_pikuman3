@@ -1,4 +1,4 @@
-// 크로스워드 퍼즐 그리드(10×8) UI 위젯입니다.
+// 크로스워드 퍼즐 그리드(10×12) UI 위젯입니다.
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -7,7 +7,7 @@ import '../../../../core/engine/puzzle_model.dart';
 import '../../controllers/game_controller.dart';
 import '../../models/game_enums.dart';
 
-/// 10열 × 8행 크로스워드 그리드 위젯.
+/// 10열 × 12행 크로스워드 그리드 위젯.
 ///
 /// - 화면 너비에 맞춰 셀 크기를 자동 계산합니다.
 /// - 모든 셀(활성/비활성)을 동일한 크기(SizedBox)로 감싸 정렬 불일치를 방지합니다.
