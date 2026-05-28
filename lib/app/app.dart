@@ -6,6 +6,8 @@ import 'package:get/get.dart';
 import 'bindings/initial_binding.dart';
 import 'routes/app_pages.dart';
 import '../core/l10n/app_translations.dart';
+import '../core/services/route_sync_service.dart';
+import '../core/widgets/app_banner_scaffold.dart';
 
 /// 앱 전체를 감싸는 최상위 위젯.
 class App extends StatelessWidget {
@@ -23,6 +25,12 @@ class App extends StatelessWidget {
       locale: const Locale('ko'),
       fallbackLocale: const Locale('ko'),
       theme: _buildTheme(),
+      routingCallback: (routing) {
+        if (Get.isRegistered<RouteSyncService>()) {
+          Get.find<RouteSyncService>().updateRoute(routing?.current);
+        }
+      },
+      builder: (context, child) => AppBannerScaffold(child: child),
     );
   }
 

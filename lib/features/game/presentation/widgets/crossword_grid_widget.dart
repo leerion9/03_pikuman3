@@ -60,13 +60,14 @@ class CrosswordGridWidget extends StatelessWidget {
   Widget _buildCell(int row, int col, double size) {
     final state = controller.cellState(row, col);
     final letter = controller.displayLetter(row, col);
+    final isSelected = controller.isSelected(row, col);
 
     // 검은 칸(비활성): 배경색 없이 동일 크기의 빈 공간
     if (state == CellDisplayState.inactive) {
       return SizedBox(width: size, height: size);
     }
 
-    // 활성 칸: Padding으로 셀 간 간격 표현 (margin 사용 시 Row 크기가 틀어짐)
+    // 활성 칸: 선택 시 배경은 유지하고 테두리만 강조합니다.
     return SizedBox(
       width: size,
       height: size,
@@ -78,6 +79,12 @@ class CrosswordGridWidget extends StatelessWidget {
             decoration: BoxDecoration(
               color: _bgColor(state),
               borderRadius: BorderRadius.circular(2),
+              border: isSelected
+                  ? Border.all(
+                      color: const Color(0xFFFF9800),
+                      width: 2.5,
+                    )
+                  : null,
             ),
             child: Center(
               child: Text(
@@ -100,8 +107,8 @@ class CrosswordGridWidget extends StatelessWidget {
   Color _bgColor(CellDisplayState state) => switch (state) {
         CellDisplayState.inactive => Colors.transparent,
         CellDisplayState.empty => Colors.white,
-        CellDisplayState.activeWord => const Color(0xFFBBDEFB), // blue-100
-        CellDisplayState.selected => const Color(0xFFFFD54F), // amber-300
+        CellDisplayState.activeWord => Colors.white,
+        CellDisplayState.selected => Colors.white,
         CellDisplayState.hint => const Color(0xFFA5D6A7), // green-200
         CellDisplayState.filled => const Color(0xFFFFE0B2), // orange-100 (입력됐지만 판별 전)
         CellDisplayState.correct => const Color(0xFF90CAF9), // blue-200 (정답 확정)

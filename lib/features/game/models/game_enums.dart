@@ -9,10 +9,10 @@ enum CellDisplayState {
   /// 단어에 속하지만 아직 입력이 없는 빈 칸
   empty,
 
-  /// 현재 입력 중인 단어에 속한 빈 칸 (하이라이트 표시)
+  /// (레거시) 현재 입력 중인 단어 빈 칸 — UI는 테두리로만 선택 표시
   activeWord,
 
-  /// 현재 커서(선택)가 위치한 칸
+  /// (레거시) 선택 칸 — UI는 [GameController.isSelected] 테두리로 표시
   selected,
 
   /// 힌트로 미리 오픈된 칸 (정답 글자 표시)

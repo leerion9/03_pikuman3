@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../app/routes/app_pages.dart';
-import '../../../core/widgets/banner_ad_widget.dart';
 import '../controllers/main_controller.dart';
 
 /// 메인 화면.
@@ -37,7 +36,6 @@ class _MainPageState extends State<MainPage> {
           children: [
             _buildTopBar(context),
             Expanded(child: _buildCenter(context)),
-            const SafeArea(top: false, child: BannerAdWidget()),
           ],
         ),
       ),

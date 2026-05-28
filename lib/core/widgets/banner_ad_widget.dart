@@ -1,10 +1,17 @@
-// 하단 고정 배너 광고 위젯: AdMob 배너를 로드해서 표시합니다.
+// 하단 고정 배너 광고 위젯: AdService 캐시를 표시합니다 (화면마다 새로 로드하지 않음).
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
-/// 화면 하단 배너 광고 위젯
+import '../services/ad_service.dart';
+
+/// 화면 하단 배너 광고 위젯.
+///
+/// - [AdService]에서 preload된 배너를 즉시 표시합니다.
+/// - 슬롯 높이를 고정해 광고 로드 전후 레이아웃이 변하지 않습니다.
+/// - [AppBannerScaffold]에서 1개만 유지해 화면 전환 시 재로드하지 않습니다.
 class BannerAdWidget extends StatefulWidget {
   const BannerAdWidget({super.key});
 
@@ -13,66 +20,48 @@ class BannerAdWidget extends StatefulWidget {
 }
 
 class _BannerAdWidgetState extends State<BannerAdWidget> {
-  BannerAd? _bannerAd;
-  bool _isLoaded = false;
-
-  /// 배너 광고 ID (출시 전 실제 ID로 교체 필요)
-  static String get _adUnitId => 'ca-app-pub-2850426593033777/7736195455';
+  AdService? _adService;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadAd());
+    if (kIsWeb) return;
+    _adService = Get.find<AdService>();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _ensurePreload());
   }
 
-  Future<void> _loadAd() async {
-    if (kIsWeb || !mounted) return;
+  /// 실제 화면 너비로 preload를 보장합니다 (아직 없을 때만 요청).
+  void _ensurePreload() {
+    if (!mounted || _adService == null) return;
     final width = MediaQuery.sizeOf(context).width.truncate();
-    if (!mounted) return;
-    final size =
-        await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(width);
-    if (size == null || !mounted) return;
-
-    final ad = BannerAd(
-      adUnitId: _adUnitId,
-      size: size,
-      request: const AdRequest(),
-      listener: BannerAdListener(
-        onAdLoaded: (_) {
-          if (mounted) setState(() => _isLoaded = true);
-        },
-        onAdFailedToLoad: (ad, error) {
-          ad.dispose();
-        },
-      ),
-    );
-    ad.load();
-    if (mounted) setState(() => _bannerAd = ad);
-  }
-
-  @override
-  void dispose() {
-    _bannerAd?.dispose();
-    super.dispose();
+    _adService!.preloadBanner(width);
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_isLoaded || _bannerAd == null) {
-      return Container(
-        height: 50,
-        color: Colors.grey.shade200,
-        alignment: Alignment.center,
-        child: Text(
-          '광고 영역',
-          style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
-        ),
-      );
+    if (kIsWeb) {
+      return const SizedBox(height: 50);
     }
-    return SizedBox(
-      width: _bannerAd!.size.width.toDouble(),
-      height: _bannerAd!.size.height.toDouble(),
-      child: AdWidget(ad: _bannerAd!),
-    );
+
+    final adService = _adService ?? Get.find<AdService>();
+
+    return Obx(() {
+      final height = adService.bannerSlotHeight.value;
+      final ad = adService.bannerAd;
+
+      return SizedBox(
+        width: double.infinity,
+        height: height,
+        child: ad != null
+            ? Center(
+                child: SizedBox(
+                  width: ad.size.width.toDouble(),
+                  height: ad.size.height.toDouble(),
+                  child: AdWidget(ad: ad),
+                ),
+              )
+            : const SizedBox.shrink(),
+      );
+    });
   }
 }

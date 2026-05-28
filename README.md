@@ -155,10 +155,12 @@ assets/
 - [x] `.tr` 전면 제거 (한국어 직접 표기로 전환)
 - [x] `flutter analyze` 이슈 0개 확인
 
-### Phase 8: 완성도 & 출시 준비
-- [ ] In-App Review API 연동 + 스토어 이동 fallback
-- [ ] 앱 아이콘, 스플래시 이미지 적용
-- [ ] AdMob 테스트 ID → 실제 ID 교체
+### Phase 8: 완성도 & 출시 준비 (진행 중)
+- [ ] In-App Review API 연동 + 스토어 이동 fallback (설정 화면 구현됨, 실기기 확인 필요)
+- [x] 앱 아이콘, 스플래시 이미지 적용 (2026-05-27)
+- [x] AdMob pikuman3 실제 ID 교체 (2026-05-28)
+- [x] BGM 교체 (`Divertimento.mp3`, pikuman2 볼륨 기준) (2026-05-28)
+- [x] 배너 광고 preload·고정 슬롯·앱 하단 통합 (`AppBannerScaffold`) (2026-05-28)
 - [ ] 릴리즈 빌드 및 서명
 - [ ] 플레이스토어 업로드
 
@@ -166,7 +168,7 @@ assets/
 
 ## 진행 상황
 
-> 마지막 업데이트: 2026-05-22 (게임 플레이 버그 수정 2차)
+> 마지막 업데이트: 2026-05-28 (게임 UX·광고·출시 준비)
 
 ### 완료된 작업
 - Flutter 프로젝트 생성 및 기본 패키지 설정
@@ -243,20 +245,27 @@ assets/
   - `game_page.dart` — 게임 화면 헤더에 설정 버튼 추가
   - `crossword_grid_widget.dart` — 정답 확정 색상 초록→파란색 변경, `filled` 상태 연한 오렌지 색상 추가
   - `flutter analyze` 이슈 0개
+- **WordPlacer 백트래킹·보드 10×12·이미지 에셋** (2026-05-27)
+  - `level_design.csv` 101레벨 전부 일치 (`tool/verify_level_design.dart`)
+  - 앱 아이콘·캐릭터·스플래시2 적용 + `flutter_launcher_icons`
+- **게임 UX·출시 준비** (2026-05-28)
+  - 셀 선택: 같은 단어 배경 하이라이트 제거 → **선택 칸 테두리만** 표시
+  - 오답 단어 마지막 음절: 팔레트 무한 소모 방지 (`canAcceptSyllableAt`, `_wrongWords`)
+  - BGM `Divertimento.mp3` 적용, 볼륨 BGM 1.0 / 효과음 0.3 (pikuman2 동일)
+  - AdMob pikuman3 App ID·배너·전면 ID 적용
+  - `AdService` 배너 preload·캐시·백오프 재시도, 고정 슬롯 높이
+  - `AppBannerScaffold` + `RouteSyncService` — 하단 배너 1개 고정 (화면 전환 시 WebView 꼬임 방지)
+  - 레벨 클리어 → 결과 화면 이동 중복 방지 (`_navigatedToResult`)
+  - `GlobalKey<NavigatorState>` 중복 오류 수정 (Obx가 Navigator를 감싸지 않도록 분리)
+  - `flutter analyze` 이슈 0개
 
 ### 다음 할 일
-- **`level_design.csv` vs 실제 퍼즐 생성 불일치 점검** (다음 작업 우선 진행)
-  - `level_design.csv`의 word_count·hint_count 값이 실제 생성 퍼즐과 맞지 않는 레벨 확인
-  - 원인 분석 후 CSV 수정 또는 퍼즐 생성 로직 조정
-- **게임 플레이 추가 테스트** (실기기 재테스트 필요)
-- **Phase 8**: 완성도 & 출시 준비
-  - 앱 아이콘 이미지 `assets/images/app_icon.png` 준비 후 `dart run flutter_launcher_icons` 실행
-  - 스플래시·캐릭터 이미지 `assets/images/` 에 배치 (`pikuman_back.png` 등)
-  - BGM 파일 교체 (`assets/sounds/bgm.mp3` 새 파일로 덮어쓰기)
-  - AdMob 콘솔에서 pikuman3 앱 등록 → App ID / 배너 ID / 전면 ID 발급 후 교체
-  - In-App Review API 연동 확인 (설정 화면 이미 구현됨 ✅)
+- **게임 플레이·광고 실기기 재테스트** (메인↔게임↔결과, 배너 표시, 버튼 동작)
+- **Phase 8 나머지**
+  - In-App Review 실기기 확인
   - 릴리즈 빌드 및 서명 (`flutter build appbundle --release`)
   - 플레이스토어 업로드
+- **출시 전** 테스트용 레벨 이동 UI 제거 검토
 
 ---
 
@@ -266,12 +275,12 @@ assets/
 
 | 항목 | 현재 상태 | 교체 방법 |
 |------|----------|----------|
-| AdMob App ID | pikuman2 App ID 임시 사용 중 | AdMob 콘솔 → pikuman3 앱 등록 → `AndroidManifest.xml` 의 `APPLICATION_ID` 교체 |
-| AdMob 배너 광고 ID | pikuman2 ID 사용 중 | `lib/core/widgets/banner_ad_widget.dart` 의 `_adUnitId` 교체 |
-| AdMob 전면 광고 ID | pikuman2 ID 사용 중 | `lib/core/services/ad_service.dart` 의 `interstitialAdUnitId` 교체 |
-| 캐릭터 이미지 | 없음 (빈 공간으로 표시됨) | `assets/images/pikuman_back.png` 추가 |
-| 앱 아이콘 | 없음 | `assets/images/app_icon.png` 추가 후 `dart run flutter_launcher_icons` |
-| BGM 파일 | 구버전 `bgm.mp3` 사용 중 | 새 파일로 `assets/sounds/bgm.mp3` 덮어쓰기 |
+| AdMob App ID | ✅ pikuman3 ID 적용됨 | `android/app/src/main/AndroidManifest.xml` |
+| AdMob 배너 광고 ID | ✅ pikuman3 ID 적용됨 | `lib/core/services/ad_service.dart` `bannerAdUnitId` |
+| AdMob 전면 광고 ID | ✅ pikuman3 ID 적용됨 | `lib/core/services/ad_service.dart` `interstitialAdUnitId` |
+| 캐릭터 이미지 | ✅ 적용됨 | `assets/images/pikuman_back.png` |
+| 앱 아이콘 | ✅ 적용됨 | `assets/images/app_icon.png` |
+| BGM 파일 | ✅ Divertimento 적용됨 | `assets/sounds/bgm.mp3` |
 | 플레이스토어 URL | pikuman3 패키지명으로 작성됨 | 앱 출시 후 자동으로 유효해짐 (별도 수정 불필요) |
 
 ## 광고 ID 위치
@@ -279,5 +288,5 @@ assets/
 | 광고 종류 | 파일 | 변수명 |
 |----------|------|-------|
 | AdMob App ID | `android/app/src/main/AndroidManifest.xml` | `APPLICATION_ID` meta-data |
-| 배너 광고 ID | `lib/core/widgets/banner_ad_widget.dart` | `_adUnitId` |
+| 배너 광고 ID | `lib/core/services/ad_service.dart` | `bannerAdUnitId` |
 | 전면 광고 ID | `lib/core/services/ad_service.dart` | `interstitialAdUnitId` |

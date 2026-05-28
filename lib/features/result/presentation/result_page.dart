@@ -5,7 +5,6 @@ import 'package:get/get.dart';
 
 import '../../../app/routes/app_pages.dart';
 import '../../../core/engine/puzzle_model.dart';
-import '../../../core/widgets/banner_ad_widget.dart';
 
 /// 게임 결과 화면.
 ///
@@ -37,7 +36,6 @@ class ResultPage extends StatelessWidget {
             _buildHeader(level, timeStr),
             Expanded(child: _buildWordList(words)),
             _buildButtons(level),
-            const SafeArea(top: false, child: BannerAdWidget()),
           ],
         ),
       ),

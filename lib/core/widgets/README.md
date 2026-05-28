@@ -4,4 +4,5 @@
 
 ## 파일
 
-- `banner_ad_widget.dart` - AdMob 하단 배너 광고 로드·표시 (메인·게임 화면에서 사용)
+- `app_banner_scaffold.dart` - 앱 하단 고정 배너 래퍼 (메인·게임·결과만 표시)
+- `banner_ad_widget.dart` - AdService 캐시 배너 표시, 고정 슬롯 높이

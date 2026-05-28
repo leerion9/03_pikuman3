@@ -7,7 +7,6 @@ import 'package:get/get.dart';
 
 import '../../../app/routes/app_pages.dart';
 import '../../../core/engine/puzzle_model.dart';
-import '../../../core/widgets/banner_ad_widget.dart';
 import '../controllers/game_controller.dart';
 import 'widgets/crossword_grid_widget.dart';
 import 'widgets/syllable_palette_widget.dart';
@@ -65,7 +64,6 @@ class _GamePageState extends State<GamePage> {
                 ],
               ),
             ),
-            const SafeArea(top: false, child: BannerAdWidget()),
           ],
         ),
       ),
@@ -147,6 +145,11 @@ class _GamePageState extends State<GamePage> {
     final selectedPos = controller.selectedPos.value;
     if (selectedPos == null) return;
 
+    // 입력 불가(이미 채워진 칸·확정 칸 등)면 애니메이션·팔레트 소모 없음
+    if (!controller.canAcceptSyllableAt(selectedPos.$1, selectedPos.$2)) {
+      return;
+    }
+
     // 팔레트 타일 위치 구하기
     final paletteKey = index < _paletteKeys.length ? _paletteKeys[index] : null;
     final paletteBox =
@@ -175,7 +178,7 @@ class _GamePageState extends State<GamePage> {
     }
 
     // 게임 상태는 즉시 업데이트 (애니메이션과 병행)
-    controller.onSyllableTap(syllable);
+    if (!controller.onSyllableTap(syllable)) return;
   }
 
   /// Overlay에 음절 타일이 팔레트 위치에서 그리드 칸으로 날아가는 애니메이션을 삽입합니다.

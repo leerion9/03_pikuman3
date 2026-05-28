@@ -9,6 +9,12 @@ import 'settings_service.dart';
 
 /// BGM과 효과음을 담당하는 오디오 서비스.
 class AudioService extends GetxService with WidgetsBindingObserver {
+  /// BGM 볼륨 (pikuman2와 동일: 100%)
+  static const double bgmVolume = 1.0;
+
+  /// 효과음 볼륨 (pikuman2와 동일: 30%)
+  static const double sfxVolume = 0.3;
+
   late AudioPlayer _bgmPlayer;
   late AudioPlayer _sfxPlayer;
   bool _isBgmPlaying = false;
@@ -29,8 +35,8 @@ class AudioService extends GetxService with WidgetsBindingObserver {
     _sfxPlayer.setAudioContext(AudioContext(
       android: const AudioContextAndroid(
         audioFocus: AndroidAudioFocus.gainTransientMayDuck,
-        contentType: AndroidContentType.sonification,
-        usageType: AndroidUsageType.assistanceSonification,
+        contentType: AndroidContentType.music,
+        usageType: AndroidUsageType.game,
         isSpeakerphoneOn: false,
         stayAwake: false,
       ),
@@ -64,7 +70,7 @@ class AudioService extends GetxService with WidgetsBindingObserver {
     if (!_settings.musicEnabled) return;
     if (_isBgmPlaying) return;
     try {
-      await _bgmPlayer.play(AssetSource('sounds/bgm.mp3'));
+      await _bgmPlayer.play(AssetSource('sounds/bgm.mp3'), volume: bgmVolume);
       _isBgmPlaying = true;
     } catch (e) {
       _log('BGM 재생 실패: $e');
@@ -105,7 +111,7 @@ class AudioService extends GetxService with WidgetsBindingObserver {
     if (!_settings.sfxEnabled) return;
     try {
       await _sfxPlayer.stop();
-      await _sfxPlayer.play(AssetSource(assetPath), volume: 0.6);
+      await _sfxPlayer.play(AssetSource(assetPath), volume: sfxVolume);
     } catch (e) {
       _log('효과음 재생 실패 ($assetPath): $e');
     }
