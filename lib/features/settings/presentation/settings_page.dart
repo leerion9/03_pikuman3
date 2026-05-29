@@ -117,14 +117,39 @@ class SettingsPage extends GetView<SettingsController> {
 
   /// 구글 인앱 리뷰 API를 시도하고, 불가능하면 스토어 페이지로 이동합니다.
   Future<void> _requestReview() async {
+    HapticFeedback.lightImpact();
     final inAppReview = InAppReview.instance;
     try {
       if (await inAppReview.isAvailable()) {
         await inAppReview.requestReview();
+        // 구글이 UI 표시 여부를 제어하므로, 창이 안 떠도 정상입니다.
+        Get.snackbar(
+          '앱 평가',
+          '',
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 5),
+          messageText: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                '평가 창이 보이지 않을 수 있습니다.',
+                style: TextStyle(color: Colors.white70),
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: _openPlayStore,
+                  child: const Text('스토어로 이동'),
+                ),
+              ),
+            ],
+          ),
+        );
         return;
       }
     } catch (_) {}
-    // 인앱 리뷰 불가 시 스토어로 직접 이동
+    // 인앱 리뷰 불가(미출시·사이드로드 APK 등) 시 스토어로 직접 이동
     await _openPlayStore();
   }
 

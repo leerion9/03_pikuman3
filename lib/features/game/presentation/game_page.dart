@@ -47,24 +47,47 @@ class _GamePageState extends State<GamePage> {
       backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
         bottom: false,
-        child: Column(
-          children: [
-            _buildHeader(),
-            CrosswordGridWidget(
-              controller: controller,
-              containerKey: _gridKey,
-            ),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildPalette(),
-                  _buildHintButton(),
-                  const SizedBox(height: 4),
-                ],
-              ),
-            ),
-          ],
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // 하단 배너·힌트·팔레트를 남기고 그리드 셀 크기를 줄여 overflow 방지
+            const gridPadding = 2.0;
+            const hintBlockHeight = 52.0;
+            const bottomGap = 4.0;
+            const minPaletteHeight = 56.0;
+            const headerBlockHeight = 52.0;
+
+            final maxWidth = constraints.maxWidth;
+            final maxHeight = constraints.maxHeight;
+            final cellByWidth =
+                (maxWidth - gridPadding * 2) / PuzzleBoard.boardCols;
+            final cellByHeight = (maxHeight -
+                    headerBlockHeight -
+                    hintBlockHeight -
+                    minPaletteHeight -
+                    bottomGap) /
+                PuzzleBoard.boardRows;
+            final cellSize = min(cellByWidth, cellByHeight.clamp(0.0, cellByWidth));
+
+            return Column(
+              children: [
+                _buildHeader(),
+                CrosswordGridWidget(
+                  controller: controller,
+                  containerKey: _gridKey,
+                  cellSize: cellSize,
+                ),
+                Expanded(
+                  child: Column(
+                    children: [
+                      Expanded(child: _buildPalette()),
+                      _buildHintButton(),
+                      const SizedBox(height: bottomGap),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

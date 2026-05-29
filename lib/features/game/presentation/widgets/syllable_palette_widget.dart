@@ -26,20 +26,17 @@ class SyllablePaletteWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ConstrainedBox(
-      // 팔레트 최대 높이 제한 (초과 시 스크롤 가능)
-      constraints: const BoxConstraints(maxHeight: 140),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          alignment: WrapAlignment.center,
-          children: [
-            for (int i = 0; i < syllables.length; i++)
-              _buildTile(i, syllables[i]),
-          ],
-        ),
+    // 부모(SizedBox/Expanded)가 높이를 정해 주면 그 안에서 스크롤합니다.
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        alignment: WrapAlignment.center,
+        children: [
+          for (int i = 0; i < syllables.length; i++)
+            _buildTile(i, syllables[i]),
+        ],
       ),
     );
   }

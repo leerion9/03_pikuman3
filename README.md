@@ -156,19 +156,21 @@ assets/
 - [x] `flutter analyze` 이슈 0개 확인
 
 ### Phase 8: 완성도 & 출시 준비 (진행 중)
-- [ ] In-App Review API 연동 + 스토어 이동 fallback (설정 화면 구현됨, 실기기 확인 필요)
+- [x] In-App Review API 연동 + 스토어 이동 fallback (설정 화면 UX 개선, 2026-05-29)
+- [ ] In-App Review 팝업 표시 — 플레이스토어 내부 테스트 트랙 설치 후 확인 필요
 - [x] 앱 아이콘, 스플래시 이미지 적용 (2026-05-27)
 - [x] AdMob pikuman3 실제 ID 교체 (2026-05-28)
 - [x] BGM 교체 (`Divertimento.mp3`, pikuman2 볼륨 기준) (2026-05-28)
 - [x] 배너 광고 preload·고정 슬롯·앱 하단 통합 (`AppBannerScaffold`) (2026-05-28)
+- [x] 게임 화면 하단 overflow 수정 — 고레벨·다수 음절 팔레트 대응 (2026-05-29)
 - [ ] 릴리즈 빌드 및 서명
-- [ ] 플레이스토어 업로드
+- [ ] 플레이스토어 등록·업로드
 
 ---
 
 ## 진행 상황
 
-> 마지막 업데이트: 2026-05-28 (게임 UX·광고·출시 준비)
+> 마지막 업데이트: 2026-05-29 (게임 overflow 수정·In-App Review UX)
 
 ### 완료된 작업
 - Flutter 프로젝트 생성 및 기본 패키지 설정
@@ -258,13 +260,20 @@ assets/
   - 레벨 클리어 → 결과 화면 이동 중복 방지 (`_navigatedToResult`)
   - `GlobalKey<NavigatorState>` 중복 오류 수정 (Obx가 Navigator를 감싸지 않도록 분리)
   - `flutter analyze` 이슈 0개
+- **게임 overflow·In-App Review UX** (2026-05-29)
+  - `game_page.dart` — `LayoutBuilder`로 그리드 셀 크기를 세로 공간에 맞게 자동 축소 (161레벨 등 고레벨 하단 overflow 해결)
+  - `crossword_grid_widget.dart` — 외부에서 `cellSize` 지정 가능
+  - `syllable_palette_widget.dart` — 부모 높이 안에서 스크롤되도록 변경
+  - `settings_page.dart` — 앱 평가 버튼: 햅틱 + 스낵바 안내 + [스토어로 이동] fallback (줄바꿈 깨짐 수정)
+  - In-App Review는 설정 화면 수동 호출 방식 (게임 중 랜덤 표시 아님). 팝업은 구글 정책상 내부 테스트 트랙 설치 후에야 확인 가능
+  - `flutter analyze` 이슈 0개
 
 ### 다음 할 일
-- **게임 플레이·광고 실기기 재테스트** (메인↔게임↔결과, 배너 표시, 버튼 동작)
-- **Phase 8 나머지**
-  - In-App Review 실기기 확인
+- **플레이스토어 등록 절차** (다음 세션 시작)
+  - Google Play Console 앱 생성
   - 릴리즈 빌드 및 서명 (`flutter build appbundle --release`)
-  - 플레이스토어 업로드
+  - 스토어 등록정보·스크린샷·개인정보 처리방침 등 작성
+  - 내부 테스트 트랙 업로드 → In-App Review·광고 최종 확인
 - **출시 전** 테스트용 레벨 이동 UI 제거 검토
 
 ---

@@ -18,19 +18,26 @@ class CrosswordGridWidget extends StatelessWidget {
   /// 애니메이션에서 그리드 컨테이너 위치를 구하기 위한 전역 키
   final GlobalKey? containerKey;
 
+  /// 셀 크기(px). null이면 화면 너비 기준으로 자동 계산합니다.
+  ///
+  /// 작은 화면·하단 배너 등으로 세로 공간이 부족할 때 [GamePage]에서
+  /// 높이에 맞게 줄인 값을 넘깁니다.
+  final double? cellSize;
+
   const CrosswordGridWidget({
     super.key,
     required this.controller,
     this.containerKey,
+    this.cellSize,
   });
 
   @override
   Widget build(BuildContext context) {
     // 그리드 컨테이너 내부 패딩(양쪽 2px)을 제외한 너비를 10칸으로 나눠 셀 크기 계산
     const double gridPadding = 2.0;
-    final double cellSize =
+    final double resolvedCellSize = cellSize ??
         (MediaQuery.of(context).size.width - gridPadding * 2) /
-        PuzzleBoard.boardCols;
+            PuzzleBoard.boardCols;
 
     return Container(
       key: containerKey,
@@ -44,7 +51,7 @@ class CrosswordGridWidget extends StatelessWidget {
             (row) => Row(
               children: List.generate(
                 PuzzleBoard.boardCols,
-                (col) => _buildCell(row, col, cellSize),
+                (col) => _buildCell(row, col, resolvedCellSize),
               ),
             ),
           ),
